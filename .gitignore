@@ -1,0 +1,13 @@
+.gradle/
+build/
+.idea/
+*.iml
+local.properties
+.kotlin/
+
+# Downloaded in CI, never commit
+app/resources/windows-x64/
+ffmpeg.zip
+ffmpeg-tmp/
+sums.txt
+dist/
