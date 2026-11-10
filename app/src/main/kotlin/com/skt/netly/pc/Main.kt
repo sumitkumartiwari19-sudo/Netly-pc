@@ -28,37 +28,3 @@ fun main() = application {
         }
     }
 }
- ::exitApplication,
-        title = AppInfo.NAME,
-        state = rememberWindowState(width = 1100.dp, height = 700.dp),
-    ) {
-        HelloScreen()
-    }
-}
-
-@Composable
-private fun HelloScreen() {
-    val ytDlp = AppInfo.hasBundledTool("yt-dlp.exe")
-    val ffmpeg = AppInfo.hasBundledTool("ffmpeg.exe")
-
-    Column(
-        modifier = Modifier.fillMaxSize().background(Bg).padding(48.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        BasicText(
-            text = "Netly for PC",
-            style = TextStyle(color = Text, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold),
-        )
-        BasicText(
-            text = "M0: project setup works",
-            modifier = Modifier.padding(top = 8.dp),
-            style = TextStyle(color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold),
-        )
-        BasicText(
-            text = "yt-dlp bundled: ${if (ytDlp) "yes" else "no"}   ·   ffmpeg bundled: ${if (ffmpeg) "yes" else "no"}",
-            modifier = Modifier.padding(top = 24.dp),
-            style = TextStyle(color = Muted, fontSize = 15.sp),
-        )
-    }
-}

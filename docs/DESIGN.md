@@ -111,8 +111,8 @@ Header with search, sort and grid/list toggle → filter chips (All, Video, Audi
 ## 11. Compose implementation notes
 Neumorphic shadows are not built into Compose, and Android's `setShadowLayer` does not exist on Desktop (Skia). Draw them with blurred shapes through one reusable modifier pair (implemented in `ui/theme/NeuModifiers.kt`).
 
-- **Raised:** draw a blurred rounded rect in `shadowDark` offset (+o, +o), another in `shadowLight` offset (-o, -o), then the solid `bg` shape on top. Blur uses a Skia `MaskFilter.makeBlur(FilterBlurMode.NORMAL, blur / 2)` set through `paint.asFrameworkPaint().maskFilter`.
-- **Inset:** clip to the rounded shape, fill `bg`, then draw the "ring" (a huge rect minus the shape) blurred: `shadowDark` shifted (+o, +o) and `shadowLight` shifted (-o, -o).
+- **Raised:** draw a blurred rounded rect in `shadowDark` offset (+o, +o), another in `shadowLight` offset (-o, -o), then the solid `bg` shape on top. Draw with the Skia canvas (`canvas.nativeCanvas`) and a Skia `Paint` whose `maskFilter` is `MaskFilter.makeBlur(FilterBlurMode.NORMAL, blur / 2)`. Compose's own `Paint` has no blur on Desktop.
+- **Inset:** clip to the rounded shape, fill `bg`, then draw a thick blurred outline hugging the outside of the shape (the "ring"): `shadowDark` shifted (+o, +o) and `shadowLight` shifted (-o, -o).
 - Elevation values live in `NeuElevation` (Large 8/18, Medium 5/10, Small 3/6, InsetMedium 5/10, InsetSmall 4/8).
 - Theme: `NetlyTheme(mode)` provides `NeuColors` and `NeuTypography`; read them through `Neu.colors` and `Neu.type`. No hard-coded colours in screens.
 - Shared components: `NeuSurface`, `NeuButton` / `NeuTextButton`, `NeuSegmented`, `NeuSwitch`, `NeuProgress`, `NeuIcon`, `NeuText`. Do not copy shadow code into screens.
