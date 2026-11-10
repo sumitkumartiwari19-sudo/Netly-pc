@@ -3,17 +3,17 @@
 Each milestone ends with something you can install and try. Build and test them in order; tick boxes as you go. "Done when" is the acceptance test.
 
 ## M0 — Project setup and pipeline
-- [ ] Create GitHub repo `netly-pc`; add `docs/`, `README.md`, `AGENTS.md`
-- [ ] Gradle project (Kotlin + Compose Desktop), Koin, SQLDelight, logging
-- [ ] `.github/workflows/build.yml` produces a Windows installer for a hello-world window
-- [ ] Bundle placeholder `resources/windows-x64/` folder
+- [x] Create GitHub repo `netly-pc`; add `docs/`, `README.md`, `AGENTS.md`
+- [x] Gradle project (Kotlin + Compose Desktop); Koin, SQLDelight and logging are added in M2/M3 when first used
+- [x] `.github/workflows/build.yml` produces a Windows installer for a hello-world window
+- [x] Bundle `resources/windows-x64/` (yt-dlp.exe and ffmpeg.exe downloaded in CI)
 - **Done when:** a tag `v0.0.1` produces a GitHub Release with an installer that opens a window on Windows.
 
 ## M1 — Shell and theme
-- [ ] `NetlyTheme` with light and dark `NeuColors`, Manrope and JetBrains Mono fonts
-- [ ] Reusable components: `NeuSurface`, `NeuButton`, `NeuChip`, `NeuSegmented`, `NeuSwitch`, `NeuProgress`, `NeuInput`
-- [ ] Custom title bar (drag, minimise, maximise, close) and sidebar navigation with 4 empty screens
-- [ ] Theme switch (Light / Dark / System) wired to settings
+- [x] `NetlyTheme` with light and dark `NeuColors` (system font for now; Manrope and JetBrains Mono are bundled in M2)
+- [ ] Reusable components: `NeuSurface`, `NeuButton`, `NeuSegmented`, `NeuText`, `NeuIcon` (M1); `NeuChip`, `NeuSwitch`, `NeuProgress`, `NeuInput` are added in the milestone that first needs them
+- [ ] Sidebar navigation with 4 placeholder screens (native Windows title bar for now; custom title bar is a later polish item, see DESIGN.md section 11)
+- [x] Theme switch (Light / Dark; follows Windows by default); saved to settings in M4
 - **Done when:** the empty shell matches `DESIGN.md` in both themes.
 
 ## M2 — Home: fetch and preview

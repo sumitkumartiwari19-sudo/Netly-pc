@@ -11,6 +11,7 @@ val appVersion = (findProperty("appVersion") as String?) ?: "0.0.1"
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.foundation)
+    implementation(compose.animation)
     implementation(compose.runtime)
     testImplementation(kotlin("test"))
 }

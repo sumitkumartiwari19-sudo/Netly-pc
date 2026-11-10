@@ -24,7 +24,7 @@ Source of truth for the UI. Matches the approved canvas "Netly PC – UI Design"
 | `accent` | `#4F5BFF` | `#4F5BFF` | Primary button fill, progress fill |
 | `accentText` | `#3A45E0` | `#9AA4FF` | Active labels and icons |
 | `onAccent` | `#FFFFFF` | `#FFFFFF` | Text on accent |
-| `success` | `#12805C` | `#5FD3A2` | Ready, merging, reachable |
+| `success` | `#0E6B4C` | `#5FD3A2` | Ready, merging, reachable (light value darkened to pass 4.5:1) |
 | `error` | `#B3321F` | `#FF8A7A` | Failed state |
 
 Contrast: `textMuted` on `bg` is above 5:1 in both themes; `accentText` on `bg` is above 5:1; white on `accent` is about 4.9:1.
@@ -109,25 +109,13 @@ Header with search, sort and grid/list toggle → filter chips (All, Video, Audi
 - Shortcuts: Ctrl+V paste and fetch, Ctrl+1/2/3/4 switch screens, Ctrl+, open Settings, Space pause/resume selected download.
 
 ## 11. Compose implementation notes
-Neumorphic shadows are not built into Compose; implement one reusable modifier and use it everywhere.
+Neumorphic shadows are not built into Compose, and Android's `setShadowLayer` does not exist on Desktop (Skia). Draw them with blurred shapes through one reusable modifier pair (implemented in `ui/theme/NeuModifiers.kt`).
 
-```kotlin
-data class NeuColors(val bg: Color, val dark: Color, val light: Color)
-
-fun Modifier.neuRaised(c: NeuColors, radius: Dp = 22.dp, offset: Dp = 8.dp, blur: Dp = 18.dp) =
-    this.drawBehind {
-        drawIntoCanvas { canvas ->
-            val p = Paint().apply { asFrameworkPaint().apply {
-                isAntiAlias = true; color = c.bg.toArgb()
-                setShadowLayer(blur.toPx(), offset.toPx(), offset.toPx(), c.dark.toArgb()) } }
-            canvas.drawRoundRect(0f, 0f, size.width, size.height, radius.toPx(), radius.toPx(), p)
-            p.asFrameworkPaint().setShadowLayer(blur.toPx(), -offset.toPx(), -offset.toPx(), c.light.toArgb())
-            canvas.drawRoundRect(0f, 0f, size.width, size.height, radius.toPx(), radius.toPx(), p)
-        }
-    }
-```
-- Inset (pressed) look: draw the shape, clip to it, then draw the inverted shadows inside (use a blurred stroke clipped to the shape).
-- Keep shadow offsets and blurs in a `NeuElevation` object so themes can tune them.
-- Theme: a `NetlyTheme` composable exposes `LocalNeuColors`, `LocalNeuTypography` and `LocalSpacing`; no hard-coded colours in screens.
-- Prefer one `NeuSurface(level, radius)` composable over repeating modifiers.
-- Test both themes with the same preview functions.
+- **Raised:** draw a blurred rounded rect in `shadowDark` offset (+o, +o), another in `shadowLight` offset (-o, -o), then the solid `bg` shape on top. Blur uses a Skia `MaskFilter.makeBlur(FilterBlurMode.NORMAL, blur / 2)` set through `paint.asFrameworkPaint().maskFilter`.
+- **Inset:** clip to the rounded shape, fill `bg`, then draw the "ring" (a huge rect minus the shape) blurred: `shadowDark` shifted (+o, +o) and `shadowLight` shifted (-o, -o).
+- Elevation values live in `NeuElevation` (Large 8/18, Medium 5/10, Small 3/6, InsetMedium 5/10, InsetSmall 4/8).
+- Theme: `NetlyTheme(mode)` provides `NeuColors` and `NeuTypography`; read them through `Neu.colors` and `Neu.type`. No hard-coded colours in screens.
+- Shared components: `NeuSurface`, `NeuButton` / `NeuTextButton`, `NeuSegmented`, `NeuSwitch`, `NeuProgress`, `NeuIcon`, `NeuText`. Do not copy shadow code into screens.
+- Window: M1 uses the native Windows title bar. Undecorated windows lose edge-resize and snap layouts on Windows, so a custom title bar is a later, optional polish step.
+- Fonts: Manrope and JetBrains Mono are bundled from M2; until then the system font is used.
+- Test both themes; `ContrastTest` enforces 4.5:1 for text and state colours.
