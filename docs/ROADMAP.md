@@ -10,7 +10,7 @@ Each milestone ends with something you can install and try. Build and test them 
 - **Done when:** a tag `v0.0.1` produces a GitHub Release with an installer that opens a window on Windows.
 
 ## M1 — Shell and theme
-- [x] `NetlyTheme` with light and dark `NeuColors` (system font for now; Manrope and JetBrains Mono are bundled in M2)
+- [x] `NetlyTheme` with light and dark `NeuColors` (system font for now; Manrope and JetBrains Mono are bundled in the M6 polish step)
 - [ ] Reusable components: `NeuSurface`, `NeuButton`, `NeuSegmented`, `NeuText`, `NeuIcon` (M1); `NeuChip`, `NeuSwitch`, `NeuProgress`, `NeuInput` are added in the milestone that first needs them
 - [ ] Sidebar navigation with 4 placeholder screens (native Windows title bar for now; custom title bar is a later polish item, see DESIGN.md section 11)
 - [x] Theme switch (Light / Dark; follows Windows by default); saved to settings in M4

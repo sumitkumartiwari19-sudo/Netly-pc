@@ -13,6 +13,9 @@ dependencies {
     implementation(compose.foundation)
     implementation(compose.animation)
     implementation(compose.runtime)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
     testImplementation(kotlin("test"))
 }
 

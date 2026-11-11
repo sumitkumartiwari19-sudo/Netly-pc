@@ -86,6 +86,8 @@ Header (title, engine status pill) → link bar (input, Paste, Fetch) → "Suppo
 
 States: empty (no link yet: only the link bar and a short how-to), loading (skeleton for both cards), error (message under the link bar with Retry), ready (above).
 
+In audio mode the Format row is hidden (the audio format chips already choose MP3/M4A/Opus) and only the "Embed thumbnail & tags" switch is shown. Until playlists ship, the Supports row lists Video, Shorts and Audio and says "Playlists are coming soon".
+
 ### 8.2 Downloads
 Header (Pause all, Clear completed) → three summary cards (total speed with sparkline, Active, Today) → tabs (All, Active, Queued, Completed, Failed with counts) → list of rows: thumbnail 112×63, title, meta, progress bar, status text and ETA, pause/start/retry and cancel buttons. Empty state: "Nothing downloading" with a link to Home.
 
@@ -117,5 +119,5 @@ Neumorphic shadows are not built into Compose, and Android's `setShadowLayer` do
 - Theme: `NetlyTheme(mode)` provides `NeuColors` and `NeuTypography`; read them through `Neu.colors` and `Neu.type`. No hard-coded colours in screens.
 - Shared components: `NeuSurface`, `NeuButton` / `NeuTextButton`, `NeuSegmented`, `NeuSwitch`, `NeuProgress`, `NeuIcon`, `NeuText`. Do not copy shadow code into screens.
 - Window: M1 uses the native Windows title bar. Undecorated windows lose edge-resize and snap layouts on Windows, so a custom title bar is a later, optional polish step.
-- Fonts: Manrope and JetBrains Mono are bundled from M2; until then the system font is used.
+- Fonts: Manrope and JetBrains Mono are bundled in the M6 polish step; until then the system font is used.
 - Test both themes; `ContrastTest` enforces 4.5:1 for text and state colours.
