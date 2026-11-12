@@ -39,7 +39,8 @@ object DownloadCommandBuilder {
         val container = request.container.lowercase()
         val h = request.height?.let { "[height<=$it]" }.orEmpty()
         val format = when (container) {
-            "mp4" -> "bv*$h[ext=mp4]+ba[ext=m4a]/b$h[ext=mp4]/bv*$h+ba/b$h"
+            // H.264 (avc1) plays on every Windows PC. AV1 needs a paid codec extension on many laptops, so it is avoided here.
+            "mp4" -> "bv*[vcodec^=avc1]$h+ba[ext=m4a]/b[vcodec^=avc1]$h/bv*$h[vcodec!^=av01]+ba/b$h[vcodec!^=av01]/bv*$h+ba/b$h"
             "webm" -> "bv*$h[ext=webm]+ba[ext=webm]/b$h[ext=webm]"
             else -> "bv*$h+ba/b$h"
         }

@@ -36,6 +36,7 @@ import com.skt.netly.pc.ui.components.NeuTextButton
 import com.skt.netly.pc.ui.downloads.DownloadsScreen
 import com.skt.netly.pc.ui.home.HomeScreen
 import com.skt.netly.pc.ui.library.LibraryScreen
+import com.skt.netly.pc.ui.search.SearchScreen
 import com.skt.netly.pc.ui.settings.SettingsScreen
 import com.skt.netly.pc.ui.theme.Neu
 import com.skt.netly.pc.ui.theme.ThemeMode
@@ -45,6 +46,13 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     var screen by remember { mutableStateOf(Screen.Home) }
     val focus = remember { FocusRequester() }
     val clipboardLink by container.clipboardLink.collectAsState()
+    val requested by container.requestScreen.collectAsState()
+    LaunchedEffect(requested) {
+        requested?.let {
+            screen = it
+            container.requestScreen.value = null
+        }
+    }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
     Row(
@@ -58,9 +66,10 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                 if (event.type == KeyEventType.KeyDown && event.isCtrlPressed) {
                     val target = when (event.key) {
                         Key.One -> Screen.Home
-                        Key.Two -> Screen.Downloads
-                        Key.Three -> Screen.Library
-                        Key.Four, Key.Comma -> Screen.Settings
+                        Key.Two -> Screen.Search
+                        Key.Three -> Screen.Downloads
+                        Key.Four -> Screen.Library
+                        Key.Five, Key.Comma -> Screen.Settings
                         else -> null
                     }
                     if (target != null) {
@@ -103,8 +112,13 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (screen) {
                     Screen.Home -> HomeScreen(container.home)
+                    Screen.Search -> SearchScreen(container.search)
                     Screen.Downloads -> DownloadsScreen(container.manager, onGoHome = { screen = Screen.Home })
-                    Screen.Library -> LibraryScreen(container.manager, onGoHome = { screen = Screen.Home })
+                    Screen.Library -> LibraryScreen(
+                        container.manager,
+                        onPlay = { job -> job.filePath?.let { container.playFile(it, job.request.title) } },
+                        onGoHome = { screen = Screen.Home },
+                    )
                     Screen.Settings -> SettingsScreen(container, onThemeChange)
                 }
             }

@@ -20,6 +20,7 @@ object NeuIcons {
     const val Home = "M3 11l9-8 9 8v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"
     const val Download = "M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"
     const val Folder = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+    const val Search = "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM21 21l-4.3-4.3"
     const val Sliders = "M4 7h9M17 7h3M13 7a2 2 0 1 0 4 0a2 2 0 1 0-4 0M4 17h3M11 17h9M7 17a2 2 0 1 0 4 0a2 2 0 1 0-4 0"
 }
 

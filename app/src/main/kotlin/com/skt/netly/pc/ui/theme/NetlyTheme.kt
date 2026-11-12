@@ -4,7 +4,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.skt.netly.pc.ui.i18n.LocalLanguage
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -20,7 +22,7 @@ data class NeuTypography(
     val mono: TextStyle,
 )
 
-// System font for now; Manrope and JetBrains Mono are bundled in M2.
+// Sizes and weights only; the font families are added by neuTypography() (see NeuFonts.kt).
 val DefaultNeuTypography = NeuTypography(
     display = TextStyle(fontSize = 34.sp, lineHeight = 40.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.7).sp),
     title = TextStyle(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.ExtraBold),
@@ -43,7 +45,7 @@ object Neu {
 }
 
 @Composable
-fun NetlyTheme(mode: ThemeMode, content: @Composable () -> Unit) {
+fun NetlyTheme(mode: ThemeMode, language: String = "en", content: @Composable () -> Unit) {
     val dark = when (mode) {
         ThemeMode.Light -> false
         ThemeMode.Dark -> true
@@ -51,7 +53,8 @@ fun NetlyTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     }
     CompositionLocalProvider(
         LocalNeuColors provides if (dark) DarkNeuColors else LightNeuColors,
-        LocalNeuTypography provides DefaultNeuTypography,
+        LocalNeuTypography provides remember(language) { neuTypography(language) },
+        LocalLanguage provides language,
     ) {
         content()
     }

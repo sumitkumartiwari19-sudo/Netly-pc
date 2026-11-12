@@ -13,6 +13,10 @@ sealed interface YoutubeLink {
 object YoutubeUrl {
     private val hosts = setOf("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be")
     private val idRegex = Regex("^[A-Za-z0-9_-]{11}$")
+    private val listRegex = Regex("[?&]list=([A-Za-z0-9_-]+)")
+
+    /** The playlist id inside a link like youtube.com/playlist?list=PL..., or null. */
+    fun playlistId(input: String): String? = listRegex.find(input.trim())?.groupValues?.get(1)
 
     fun parse(raw: String): YoutubeLink {
         val text = raw.trim()

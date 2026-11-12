@@ -1,6 +1,7 @@
 package com.skt.netly.pc
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import com.skt.netly.pc.platform.SingleInstance
 import com.skt.netly.pc.platform.SystemClipboard
 import com.skt.netly.pc.ui.shell.AppShell
 import com.skt.netly.pc.ui.theme.NetlyTheme
+import com.skt.netly.pc.ui.theme.NeuPerf
 import com.skt.netly.pc.ui.theme.ThemeMode
 import java.awt.Dimension
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +57,7 @@ fun main() {
         val settings by container.settings.state.collectAsState()
         val trayState = rememberTrayState()
         var visible by remember { mutableStateOf(true) }
+        SideEffect { NeuPerf.reduced = settings.reducedEffects }
         val mode = runCatching { ThemeMode.valueOf(settings.theme) }.getOrDefault(ThemeMode.System)
 
         fun quit() {
@@ -120,7 +123,7 @@ fun main() {
             state = rememberWindowState(width = 1280.dp, height = 800.dp),
         ) {
             LaunchedEffect(Unit) { window.minimumSize = Dimension(1100, 700) }
-            NetlyTheme(mode) {
+            NetlyTheme(mode, settings.language) {
                 AppShell(container, onThemeChange = { m -> container.settings.update { it.copy(theme = m.name) } })
             }
         }

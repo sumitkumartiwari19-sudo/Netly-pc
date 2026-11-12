@@ -37,6 +37,10 @@ data class AppSettings(
     val notifications: Boolean = true,
     val minimizeToTray: Boolean = true,
     val startWithWindows: Boolean = false,
+    /** en or hi. */
+    val language: String = "en",
+    /** Flat surfaces instead of blurred shadows. On by default for PCs with two or fewer cores. */
+    val reducedEffects: Boolean = Runtime.getRuntime().availableProcessors() <= 2,
 )
 
 /** Holds the settings in memory and keeps them in settings.json. A damaged file falls back to defaults. */
@@ -86,6 +90,8 @@ class SettingsRepository(private val file: File) {
             put("notifications", s.notifications)
             put("minimizeToTray", s.minimizeToTray)
             put("startWithWindows", s.startWithWindows)
+            put("language", s.language)
+            put("reducedEffects", s.reducedEffects)
         }
 
         fun decode(o: JsonObject): AppSettings {
@@ -107,6 +113,8 @@ class SettingsRepository(private val file: File) {
                 notifications = bool("notifications", d.notifications),
                 minimizeToTray = bool("minimizeToTray", d.minimizeToTray),
                 startWithWindows = bool("startWithWindows", d.startWithWindows),
+                language = str("language", d.language),
+                reducedEffects = bool("reducedEffects", d.reducedEffects),
             )
         }
     }

@@ -37,7 +37,7 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 ## M4 — Library and Settings
 - [x] Library screen: grid/list, search, filters, sort, play, show in folder, delete
 - [x] Settings screen with all P0 options saved to `settings.json`
-- [ ] Language switch English / हिन्दी (deferred: needs bundled Devanagari font)
+- [x] Language switch English / हिन्दी (text lookup in `ui/i18n/Strings.kt`, Noto Sans Devanagari bundled)
 - [x] Filename template and save-location picker
 - **Done when:** completed downloads appear in the Library and settings survive a restart.
 
@@ -46,7 +46,7 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [x] Browser-cookies option and "request blocked" guidance
 - [x] Connection test; proxy support
 - [x] Auto-retry on network errors; speed limit
-- [ ] Playlist support: select items, enqueue many (deferred)
+- [x] Playlist support: search, open a playlist, select items, enqueue many
 - **Done when:** the engine updates in-app and a blocked video can be fixed with browser cookies.
 
 ## M6 — Desktop polish
@@ -64,6 +64,13 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [ ] `v1.0.0` tag → GitHub Release; submit to Orion Store
 - [ ] Self-update banner (P1) and portable zip (if included)
 - **Done when:** v1.0.0 is public with installer and checksum files.
+
+## Added after M6
+- [x] Search screen (videos and playlists) with Play, quick download and options
+- [x] Built-in player window: speed 0.5x to 4x, volume, seek, 360p stream and 720p/1080p (prepared first)
+- [x] H.264 first for MP4 downloads (fixes the "AV1 Video Extension" message)
+- [x] Smooth mode for slow PCs (default on for 2 cores or fewer), small memory settings
+- [x] Bundled fonts: Manrope, JetBrains Mono, Noto Sans Devanagari
 
 ## After v1.0
 - P1 leftovers: embed subtitles/tags, playlist polish, per-item resume across restarts

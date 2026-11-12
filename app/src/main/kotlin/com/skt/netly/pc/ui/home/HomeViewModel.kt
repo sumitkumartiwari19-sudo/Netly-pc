@@ -66,6 +66,9 @@ class HomeViewModel(
 
     private var fetchJob: Job? = null
 
+    /** Set by the app: called with a playlist id when the user pastes a playlist link. */
+    var onPlaylist: ((String) -> Unit)? = null
+
     init {
         scope.launch { engine.prepare() }
     }
@@ -82,9 +85,12 @@ class HomeViewModel(
             YoutubeLink.Invalid -> showError(
                 FetchError(ErrorKind.InvalidUrl, "That does not look like a YouTube link. Paste a video, Shorts or youtu.be link."),
             )
-            YoutubeLink.PlaylistOnly -> showError(
-                FetchError(ErrorKind.PlaylistNotSupported, "Playlist links are not supported yet. Paste a single video link."),
-            )
+            YoutubeLink.PlaylistOnly -> {
+                val id = YoutubeUrl.playlistId(_state.value.input)
+                val open = onPlaylist
+                if (id != null && open != null) open(id)
+                else showError(FetchError(ErrorKind.PlaylistNotSupported, "Could not read this playlist link."))
+            }
             is YoutubeLink.Video -> {
                 fetchJob?.cancel()
                 _state.update { it.copy(phase = FetchPhase.Loading, error = null, notice = null) }
@@ -131,7 +137,8 @@ class HomeViewModel(
             thumbnailUrl = info.thumbnailUrl,
             durationSec = info.durationSec,
             audioOnly = audio,
-            height = if (audio) null else s.selectedHeight,
+            // MP4 is saved as H.264 at up to 1080p so it plays on every PC without a codec extension.
+            height = if (audio) null else if (s.container.equals("MP4", ignoreCase = true)) s.selectedHeight?.coerceAtMost(1080) else s.selectedHeight,
             audioKey = s.selectedAudio,
             container = s.container,
             embedThumbnail = s.embedThumbnail,

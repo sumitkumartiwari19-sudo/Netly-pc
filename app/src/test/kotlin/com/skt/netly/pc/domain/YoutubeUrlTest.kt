@@ -41,4 +41,10 @@ class YoutubeUrlTest {
         assertEquals(YoutubeLink.Invalid, YoutubeUrl.parse("https://evil.com/?u=https://youtu.be/dQw4w9WgXcQ"))
         assertEquals(YoutubeLink.Invalid, YoutubeUrl.parse("https://www.youtube.com/"))
     }
+
+    @Test
+    fun readsPlaylistId() {
+        assertEquals("PLabc_123", YoutubeUrl.playlistId("https://www.youtube.com/playlist?list=PLabc_123"))
+        assertEquals(null, YoutubeUrl.playlistId("https://youtu.be/dQw4w9WgXcQ"))
+    }
 }

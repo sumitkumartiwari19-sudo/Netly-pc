@@ -40,13 +40,19 @@ class DownloadCommandBuilderTest {
         assertEquals("yt-dlp.exe", cmd.first())
         assertEquals("--", cmd[cmd.size - 2])
         assertEquals("https://www.youtube.com/watch?v=abcdefghijk", cmd.last())
-        assertTrue(cmd.valueAfter("-f").startsWith("bv*[height<=1080][ext=mp4]+ba[ext=m4a]"))
+        assertTrue(cmd.valueAfter("-f").startsWith("bv*[vcodec^=avc1][height<=1080]+ba[ext=m4a]"))
         assertEquals("mp4", cmd.valueAfter("--merge-output-format"))
         assertEquals("C:\\Users\\a\\Downloads\\Netly", cmd.valueAfter("-P"))
         assertEquals("C:\\engine", cmd.valueAfter("--ffmpeg-location"))
         assertTrue("--embed-thumbnail" in cmd)
         assertFalse("--embed-subs" in cmd)
         assertTrue("--no-playlist" in cmd)
+    }
+
+    @Test
+    fun mp4PrefersH264AndNeverFallsBackToAv1FirstChoice() {
+        val f = build(request()).let { it[it.indexOf("-f") + 1] }
+        assertTrue(f.indexOf("avc1") in 0 until f.indexOf("av01"))
     }
 
     @Test

@@ -77,6 +77,9 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Section("General") {
+                    Setting("Language") {
+                        NeuSegmented(listOf("English", "हिन्दी"), if (s.language == "hi") 1 else 0, { change { st -> st.copy(language = if (it == 1) "hi" else "en") } })
+                    }
                     Setting("Theme") {
                         NeuSegmented(themeKeys, themeKeys.indexOf(s.theme).coerceAtLeast(0), {
                             change { st -> st.copy(theme = themeKeys[it]) }
@@ -84,6 +87,7 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
                         })
                     }
                     SwitchSetting("Watch the clipboard for YouTube links", s.clipboardWatcher) { v -> change { it.copy(clipboardWatcher = v) } }
+                    SwitchSetting("Smooth mode (fewer effects, for older PCs)", s.reducedEffects) { v -> change { it.copy(reducedEffects = v) } }
                     SwitchSetting("Show notifications", s.notifications) { v -> change { it.copy(notifications = v) } }
                     SwitchSetting("Keep running in the tray when closed", s.minimizeToTray) { v -> change { it.copy(minimizeToTray = v) } }
                     SwitchSetting("Start with Windows", s.startWithWindows) { v ->

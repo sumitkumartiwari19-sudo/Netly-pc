@@ -38,7 +38,7 @@ import com.skt.netly.pc.ui.theme.Neu
 import com.skt.netly.pc.util.Formatters
 
 @Composable
-fun LibraryScreen(manager: DownloadManager, onGoHome: () -> Unit) {
+fun LibraryScreen(manager: DownloadManager, onPlay: (DownloadJob) -> Unit, onGoHome: () -> Unit) {
     val c = Neu.colors
     val jobs by manager.jobs.collectAsState()
     var query by remember { mutableStateOf("") }
@@ -91,14 +91,14 @@ fun LibraryScreen(manager: DownloadManager, onGoHome: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(items, key = { it.id }) { job -> LibraryCard(job, manager) }
+                items(items, key = { it.id }) { job -> LibraryCard(job, manager, onPlay) }
             }
         }
     }
 }
 
 @Composable
-private fun LibraryCard(job: DownloadJob, manager: DownloadManager) {
+private fun LibraryCard(job: DownloadJob, manager: DownloadManager, onPlay: (DownloadJob) -> Unit) {
     val c = Neu.colors
     val r = job.request
     var confirmDelete by remember { mutableStateOf(false) }
@@ -121,7 +121,7 @@ private fun LibraryCard(job: DownloadJob, manager: DownloadManager) {
             )
             if (missing) NeuText("File not found. It may have been moved or deleted.", style = Neu.type.caption, color = c.error, maxLines = 2)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                NeuTextButton("Play", onClick = { job.filePath?.let { FileActions.open(it) } }, enabled = !missing, primary = true, minHeight = 38.dp, radius = 12.dp)
+                NeuTextButton("Play", onClick = { onPlay(job) }, enabled = !missing, primary = true, minHeight = 38.dp, radius = 12.dp)
                 NeuTextButton("Folder", onClick = { FileActions.showInFolder(job.filePath, r.outputDir) }, minHeight = 38.dp, radius = 12.dp)
                 NeuTextButton(
                     if (confirmDelete) "Sure?" else "Delete",
