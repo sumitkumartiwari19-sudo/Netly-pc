@@ -30,7 +30,7 @@ class DownloadManagerTest {
 
     private fun store() = DownloadStore(File(Files.createTempDirectory("netly-mgr").toFile(), "downloads.json"))
 
-    private fun manager(store: DownloadStore, downloader: MediaDownloader, max: Int = 2) =
+    private fun manager(store: DownloadStore, max: Int = 2, downloader: MediaDownloader) =
         DownloadManager(downloader, store, CoroutineScope(SupervisorJob() + Dispatchers.Default), max)
 
     private suspend fun DownloadManager.await(id: Long, status: JobStatus): DownloadJob =
