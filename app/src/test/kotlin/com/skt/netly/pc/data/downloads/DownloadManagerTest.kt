@@ -51,7 +51,7 @@ class DownloadManagerTest {
 
     @Test
     fun marksFailure() = runBlocking {
-        val m = manager(store()) { _, _ -> DownloadOutcome.Failed(FetchError(ErrorKind.Network, "No internet")) }
+        val m = manager(store()) { _, _ -> DownloadOutcome.Failed(FetchError(ErrorKind.Unknown, "No internet")) }
         val id = m.enqueue(request("bbbbbbbbbbb"), priority = false)
         assertEquals("No internet", m.await(id, JobStatus.Failed).errorMessage)
         m.close()

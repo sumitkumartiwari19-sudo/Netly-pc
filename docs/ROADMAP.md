@@ -35,26 +35,26 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - **Done when:** a 1080p video and an MP3 download fully, pause and resume works, and failures show a readable reason.
 
 ## M4 — Library and Settings
-- [ ] Library screen: grid/list, search, filters, sort, play, show in folder, delete
-- [ ] Settings screen with all P0 options saved to `settings.json`
-- [ ] Language switch English / हिन्दी (string resources)
-- [ ] Filename template and save-location picker
+- [x] Library screen: grid/list, search, filters, sort, play, show in folder, delete
+- [x] Settings screen with all P0 options saved to `settings.json`
+- [ ] Language switch English / हिन्दी (deferred: needs bundled Devanagari font)
+- [x] Filename template and save-location picker
 - **Done when:** completed downloads appear in the Library and settings survive a restart.
 
 ## M5 — Reliability and engine updates
-- [ ] Engine updater with checksum verification and rollback
-- [ ] Browser-cookies option and "request blocked" guidance
-- [ ] Connection test; proxy support
-- [ ] Auto-retry on network errors; speed limit
-- [ ] Playlist support: select items, enqueue many
+- [x] Engine updater (uses yt-dlp's own verified updater; own rollback later)
+- [x] Browser-cookies option and "request blocked" guidance
+- [x] Connection test; proxy support
+- [x] Auto-retry on network errors; speed limit
+- [ ] Playlist support: select items, enqueue many (deferred)
 - **Done when:** the engine updates in-app and a blocked video can be fixed with browser cookies.
 
 ## M6 — Desktop polish
-- [ ] Tray icon (open, pause all, quit) and minimise-to-tray
-- [ ] Clipboard watcher prompt and notifications
-- [ ] Start with Windows; single-instance handling
-- [ ] Keyboard shortcuts and focus order; accessibility pass
-- [ ] App icon, installer branding, first-run notice about content rights
+- [x] Tray icon (open, pause all, quit) and minimise-to-tray
+- [x] Clipboard watcher prompt and notifications
+- [x] Start with Windows; single-instance handling
+- [x] Shortcuts Ctrl+1..4 and Ctrl+, ; full accessibility pass later
+- [x] App icon and installer branding; first-run notice later
 - **Done when:** the app can live in the tray and offers to download copied links.
 
 ## M7 — Beta and release

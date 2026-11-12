@@ -1,6 +1,7 @@
 package com.skt.netly.pc.ui.home
 
 import com.skt.netly.pc.data.downloads.DownloadManager
+import com.skt.netly.pc.data.settings.SettingsRepository
 import com.skt.netly.pc.data.engine.EngineRepository
 import com.skt.netly.pc.data.engine.ErrorKind
 import com.skt.netly.pc.data.engine.FetchError
@@ -10,7 +11,6 @@ import com.skt.netly.pc.domain.YoutubeLink
 import com.skt.netly.pc.domain.YoutubeUrl
 import com.skt.netly.pc.domain.model.DownloadRequest
 import com.skt.netly.pc.domain.model.MediaInfo
-import com.skt.netly.pc.platform.AppPaths
 import com.skt.netly.pc.util.Formatters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,6 +57,7 @@ class HomeViewModel(
     private val engine: EngineRepository,
     private val client: YtDlpClient,
     private val manager: DownloadManager,
+    private val settings: SettingsRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _state = MutableStateFlow(HomeUiState())
@@ -135,7 +136,7 @@ class HomeViewModel(
             container = s.container,
             embedThumbnail = s.embedThumbnail,
             embedSubtitles = s.embedSubtitles && !audio,
-            outputDir = AppPaths.defaultDownloadDir().absolutePath,
+            outputDir = settings.state.value.downloadDir,
         )
         manager.enqueue(request, priority = startNow)
         _state.update {
@@ -155,6 +156,8 @@ class HomeViewModel(
     }
 
     private fun defaultHeight(info: MediaInfo): Int? =
-        info.videoQualities.filter { it.height <= 1080 }.maxByOrNull { it.height }?.height
-            ?: info.videoQualities.firstOrNull()?.height
+        settings.state.value.defaultHeight.let { wanted ->
+            if (wanted <= 0) info.videoQualities.maxByOrNull { it.height }?.height
+            else info.videoQualities.filter { it.height <= wanted }.maxByOrNull { it.height }?.height
+        } ?: info.videoQualities.firstOrNull()?.height
 }

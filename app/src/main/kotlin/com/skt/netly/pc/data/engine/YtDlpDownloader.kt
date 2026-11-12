@@ -21,7 +21,10 @@ fun interface MediaDownloader {
     suspend fun download(request: DownloadRequest, onLine: (ParsedLine) -> Unit): DownloadOutcome
 }
 
-class YtDlpDownloader(private val engine: EngineRepository) : MediaDownloader {
+class YtDlpDownloader(
+    private val engine: EngineRepository,
+    private val optionsProvider: () -> EngineOptions = { EngineOptions() },
+) : MediaDownloader {
 
     override suspend fun download(request: DownloadRequest, onLine: (ParsedLine) -> Unit): DownloadOutcome {
         val exe = try {
@@ -30,7 +33,7 @@ class YtDlpDownloader(private val engine: EngineRepository) : MediaDownloader {
             return DownloadOutcome.Failed(e.error)
         }
         val ffmpegDir = if (engine.ffmpegFile.isFile) engine.engineDir.absolutePath else null
-        val command = DownloadCommandBuilder.build(exe.absolutePath, ffmpegDir, request)
+        val command = DownloadCommandBuilder.build(exe.absolutePath, ffmpegDir, request, optionsProvider())
         return withContext(Dispatchers.IO) {
             File(request.outputDir).mkdirs()
             runProcess(command, onLine)

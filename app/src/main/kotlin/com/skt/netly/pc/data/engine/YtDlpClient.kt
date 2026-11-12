@@ -5,7 +5,10 @@ import com.skt.netly.pc.domain.model.MediaInfo
 import java.io.IOException
 
 /** Fetches video details by running the bundled yt-dlp. All failures are reported as FetchException. */
-class YtDlpClient(private val engine: EngineRepository) {
+class YtDlpClient(
+    private val engine: EngineRepository,
+    private val optionsProvider: () -> EngineOptions = { EngineOptions() },
+) {
 
     suspend fun fetch(link: YoutubeLink.Video): MediaInfo {
         val exe = engine.awaitReady()
@@ -17,6 +20,7 @@ class YtDlpClient(private val engine: EngineRepository) {
                 add("--ffmpeg-location")
                 add(engine.engineDir.absolutePath)
             }
+            addAll(optionsProvider().networkArgs(includeRate = false))
             add("--")
             add(link.canonicalUrl)
         }

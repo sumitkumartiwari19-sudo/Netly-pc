@@ -17,6 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +33,8 @@ class DownloadManager(
     private val downloader: MediaDownloader,
     private val store: DownloadStore,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-    private val maxConcurrent: Int = 2,
+    maxConcurrent: Int = 2,
+    private val retryDelayMs: Long = 5000,
 ) {
     private enum class StopReason { Pause, Remove }
 
@@ -44,6 +46,7 @@ class DownloadManager(
     private val stopReasons = ConcurrentHashMap<Long, StopReason>()
     private val lastProgressAt = ConcurrentHashMap<Long, Long>()
     private var nextId = 1L
+    @Volatile private var limit = maxConcurrent.coerceIn(1, 6)
 
     init {
         // Restart safety: anything that was unfinished when the app closed comes back Paused.
@@ -122,6 +125,11 @@ class DownloadManager(
         persist()
     }
 
+    fun setMaxConcurrent(value: Int) {
+        limit = value.coerceIn(1, 6)
+        schedule()
+    }
+
     fun close() {
         scope.cancel()
     }
@@ -140,7 +148,7 @@ class DownloadManager(
 
     private fun schedule() {
         synchronized(lock) {
-            val free = maxConcurrent - running.size
+            val free = limit - running.size
             if (free <= 0) return
             val next = _jobs.value
                 .filter { it.status == JobStatus.Queued && !running.containsKey(it.id) }
@@ -154,15 +162,28 @@ class DownloadManager(
         val id = job.id
         // Created lazily and registered first, so a Pause arriving right after the status change always finds it.
         val coroutine = scope.launch(start = CoroutineStart.LAZY) {
-            val outcome: DownloadOutcome = try {
+            suspend fun attempt(): DownloadOutcome = try {
                 downloader.download(job.request) { line -> onLine(id, line) }
             } catch (e: CancellationException) {
-                withContext(NonCancellable) { onStopped(id) }
                 throw e
             } catch (e: Exception) {
                 DownloadOutcome.Failed(FetchError(ErrorKind.Unknown, "The download failed. Try again.", e.message))
             }
-            onFinished(id, outcome)
+
+            try {
+                var outcome = attempt()
+                var retries = 0
+                // Network drops are retried automatically; yt-dlp continues from the partial file.
+                while (outcome is DownloadOutcome.Failed && outcome.error.kind == ErrorKind.Network && retries < 2) {
+                    retries++
+                    delay(retryDelayMs)
+                    outcome = attempt()
+                }
+                onFinished(id, outcome)
+            } catch (e: CancellationException) {
+                withContext(NonCancellable) { onStopped(id) }
+                throw e
+            }
         }
         running[id] = coroutine
         coroutine.invokeOnCompletion {

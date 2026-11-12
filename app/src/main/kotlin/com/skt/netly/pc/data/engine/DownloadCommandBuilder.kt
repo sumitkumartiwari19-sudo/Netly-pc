@@ -6,7 +6,12 @@ import com.skt.netly.pc.domain.model.DownloadRequest
 object DownloadCommandBuilder {
     const val OUTPUT_TEMPLATE = "%(title).150B.%(ext)s"
 
-    fun build(exe: String, ffmpegDir: String?, request: DownloadRequest): List<String> = buildList {
+    fun build(
+        exe: String,
+        ffmpegDir: String?,
+        request: DownloadRequest,
+        options: EngineOptions = EngineOptions(),
+    ): List<String> = buildList {
         add(exe)
         addAll(listOf("--ignore-config", "--no-playlist", "--no-warnings", "--no-colors"))
         addAll(listOf("--newline", "--progress", "--no-mtime", "--windows-filenames"))
@@ -15,13 +20,14 @@ object DownloadCommandBuilder {
             add("--ffmpeg-location")
             add(ffmpegDir)
         }
+        addAll(options.networkArgs())
         add("--progress-template")
         add("download:${ProgressParser.DL_PREFIX}%(progress.status)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|" +
             "%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(progress.filename)s")
         add("--progress-template")
         add("postprocess:${ProgressParser.PP_PREFIX}%(progress.status)s|%(progress.postprocessor)s")
         addAll(listOf("--no-simulate", "--print", "after_move:${ProgressParser.FILE_PREFIX}%(filepath)s"))
-        addAll(listOf("-P", request.outputDir, "-o", OUTPUT_TEMPLATE))
+        addAll(listOf("-P", request.outputDir, "-o", options.template))
 
         if (request.audioOnly) addAudio(request) else addVideo(request)
 
