@@ -22,6 +22,7 @@ import com.skt.netly.pc.data.engine.EngineRepository
 import com.skt.netly.pc.data.engine.YtDlpClient
 import com.skt.netly.pc.data.engine.YtDlpDownloader
 import com.skt.netly.pc.platform.AppPaths
+import com.skt.netly.pc.ui.downloads.DownloadsScreen
 import com.skt.netly.pc.ui.home.HomeScreen
 import com.skt.netly.pc.ui.home.HomeViewModel
 import com.skt.netly.pc.ui.screens.PlaceholderScreen
@@ -54,7 +55,7 @@ fun AppShell(onThemeChange: (ThemeMode) -> Unit) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
             when (screen) {
                 Screen.Home -> HomeScreen(homeViewModel)
-                Screen.Downloads -> PlaceholderScreen("Downloads", "Everything Netly is fetching right now.", "M3")
+                Screen.Downloads -> DownloadsScreen(manager, onGoHome = { screen = Screen.Home })
                 Screen.Library -> PlaceholderScreen("Library", "Your finished downloads, ready to play offline.", "M4")
                 Screen.Settings -> PlaceholderScreen("Settings", "Make Netly work the way you like.", "M4")
             }

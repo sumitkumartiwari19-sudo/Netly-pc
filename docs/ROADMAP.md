@@ -30,7 +30,7 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [x] `DownloadManager` with queue, 2 parallel downloads, status machine, throttled progress
 - [x] `ProgressParser`, `DownloadCommandBuilder` and `DownloadErrorMapper` with unit tests
 - [x] "Download" and "Add to queue" create jobs; merging step handled
-- [ ] Downloads screen: summary cards, tabs, rows with pause, resume, cancel, retry (M3b)
+- [x] Downloads screen: summary cards, tabs, rows with pause, resume, cancel, retry (M3b)
 - [x] Restart safety (interrupted items become Paused)
 - **Done when:** a 1080p video and an MP3 download fully, pause and resume works, and failures show a readable reason.
 
