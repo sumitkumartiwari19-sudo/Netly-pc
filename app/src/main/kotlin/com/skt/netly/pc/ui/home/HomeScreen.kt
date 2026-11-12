@@ -454,11 +454,10 @@ private fun OptionsCard(state: HomeUiState, info: MediaInfo, vm: HomeViewModel, 
 
             val size = state.selectedSizeText()
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NeuTextButton("Add to queue", onClick = {}, enabled = false, minHeight = 54.dp)
+                NeuTextButton("Add to queue", onClick = { vm.download(startNow = false) }, minHeight = 54.dp)
                 NeuTextButton(
                     text = if (size == "—") "Download" else "Download · $size",
-                    onClick = {},
-                    enabled = false,
+                    onClick = { vm.download(startNow = true) },
                     primary = true,
                     modifier = Modifier.weight(1f),
                     minHeight = 54.dp,
@@ -466,7 +465,7 @@ private fun OptionsCard(state: HomeUiState, info: MediaInfo, vm: HomeViewModel, 
                 )
             }
             NeuText(
-                "Downloading arrives in the next update.",
+                state.notice ?: " ",
                 style = Neu.type.caption.copy(fontSize = 13.sp),
                 color = c.textMuted,
             )

@@ -1,5 +1,6 @@
 package com.skt.netly.pc.ui.home
 
+import com.skt.netly.pc.data.downloads.DownloadManager
 import com.skt.netly.pc.data.engine.EngineRepository
 import com.skt.netly.pc.data.engine.ErrorKind
 import com.skt.netly.pc.data.engine.FetchError
@@ -7,7 +8,9 @@ import com.skt.netly.pc.data.engine.FetchException
 import com.skt.netly.pc.data.engine.YtDlpClient
 import com.skt.netly.pc.domain.YoutubeLink
 import com.skt.netly.pc.domain.YoutubeUrl
+import com.skt.netly.pc.domain.model.DownloadRequest
 import com.skt.netly.pc.domain.model.MediaInfo
+import com.skt.netly.pc.platform.AppPaths
 import com.skt.netly.pc.util.Formatters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +38,8 @@ data class HomeUiState(
     val container: String = "MP4",
     val embedSubtitles: Boolean = true,
     val embedThumbnail: Boolean = true,
+    /** Short confirmation shown under the buttons after a download is added. */
+    val notice: String? = null,
 ) {
     /** Size text for the current choice, e.g. "182 MB" or "~29 MB"; "—" when unknown. */
     fun selectedSizeText(): String {
@@ -49,8 +54,9 @@ data class HomeUiState(
 }
 
 class HomeViewModel(
-    private val engine: EngineRepository = EngineRepository(),
-    private val client: YtDlpClient = YtDlpClient(engine),
+    private val engine: EngineRepository,
+    private val client: YtDlpClient,
+    private val manager: DownloadManager,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _state = MutableStateFlow(HomeUiState())
@@ -80,7 +86,7 @@ class HomeViewModel(
             )
             is YoutubeLink.Video -> {
                 fetchJob?.cancel()
-                _state.update { it.copy(phase = FetchPhase.Loading, error = null) }
+                _state.update { it.copy(phase = FetchPhase.Loading, error = null, notice = null) }
                 fetchJob = scope.launch {
                     try {
                         val info = client.fetch(link)
@@ -106,6 +112,39 @@ class HomeViewModel(
     fun selectContainer(label: String) = _state.update { it.copy(container = label) }
     fun setEmbedSubtitles(value: Boolean) = _state.update { it.copy(embedSubtitles = value) }
     fun setEmbedThumbnail(value: Boolean) = _state.update { it.copy(embedThumbnail = value) }
+
+    /** "Download" starts as soon as a slot is free; "Add to queue" waits behind other items. */
+    fun download(startNow: Boolean) {
+        val s = _state.value
+        val info = s.info ?: return
+        val audio = s.mode == DownloadMode.Audio
+        if (!audio && s.selectedHeight == null) {
+            _state.update { it.copy(notice = "Pick a quality first.") }
+            return
+        }
+        val request = DownloadRequest(
+            videoId = info.id,
+            url = info.url,
+            title = info.title,
+            channel = info.channel,
+            thumbnailUrl = info.thumbnailUrl,
+            durationSec = info.durationSec,
+            audioOnly = audio,
+            height = if (audio) null else s.selectedHeight,
+            audioKey = s.selectedAudio,
+            container = s.container,
+            embedThumbnail = s.embedThumbnail,
+            embedSubtitles = s.embedSubtitles && !audio,
+            outputDir = AppPaths.defaultDownloadDir().absolutePath,
+        )
+        manager.enqueue(request, priority = startNow)
+        _state.update {
+            it.copy(
+                notice = if (startNow) "Download started. Follow it in the Downloads tab."
+                else "Added to the queue. See the Downloads tab.",
+            )
+        }
+    }
 
     fun close() {
         scope.cancel()

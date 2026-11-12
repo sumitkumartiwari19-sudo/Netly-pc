@@ -16,6 +16,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.skt.netly.pc.data.downloads.DownloadManager
+import com.skt.netly.pc.data.downloads.DownloadStore
+import com.skt.netly.pc.data.engine.EngineRepository
+import com.skt.netly.pc.data.engine.YtDlpClient
+import com.skt.netly.pc.data.engine.YtDlpDownloader
+import com.skt.netly.pc.platform.AppPaths
 import com.skt.netly.pc.ui.home.HomeScreen
 import com.skt.netly.pc.ui.home.HomeViewModel
 import com.skt.netly.pc.ui.screens.PlaceholderScreen
@@ -25,8 +31,15 @@ import com.skt.netly.pc.ui.theme.ThemeMode
 @Composable
 fun AppShell(onThemeChange: (ThemeMode) -> Unit) {
     var screen by remember { mutableStateOf(Screen.Home) }
-    val homeViewModel = remember { HomeViewModel() }
-    DisposableEffect(homeViewModel) { onDispose { homeViewModel.close() } }
+    val engine = remember { EngineRepository() }
+    val manager = remember { DownloadManager(YtDlpDownloader(engine), DownloadStore(AppPaths.downloadsFile())) }
+    val homeViewModel = remember { HomeViewModel(engine, YtDlpClient(engine), manager) }
+    DisposableEffect(homeViewModel) {
+        onDispose {
+            homeViewModel.close()
+            manager.close()
+        }
+    }
 
     Row(
         modifier = Modifier.fillMaxSize().background(Neu.colors.bg).padding(24.dp),

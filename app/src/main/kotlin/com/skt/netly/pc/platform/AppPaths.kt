@@ -17,4 +17,9 @@ object AppPaths {
     }
 
     fun engineDir(): File = File(dataDir(), "engine")
+
+    fun downloadsFile(): File = File(dataDir(), "downloads.json")
+
+    /** Where finished files go until the Settings screen (M4) lets the user change it: Downloads\Netly. */
+    fun defaultDownloadDir(): File = File(File(System.getProperty("user.home") ?: ".", "Downloads"), "Netly")
 }

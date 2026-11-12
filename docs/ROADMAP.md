@@ -17,20 +17,21 @@ Each milestone ends with something you can install and try. Build and test them 
 - **Done when:** the empty shell matches `DESIGN.md` in both themes.
 
 ## M2 — Home: fetch and preview
-- [ ] `EngineRepository` copies bundled yt-dlp and FFmpeg to the engine folder on first run
-- [ ] `YtDlpClient.fetch(url)` returns `MediaInfo` (title, channel, duration, thumbnail, formats)
-- [ ] Link bar with Paste, Fetch, validation and error messages; Ctrl+V auto-detect
-- [ ] Preview card and options card (video/audio switch, quality grid with sizes, container, toggles)
-- [ ] Loading skeleton and error state
+- [x] `EngineRepository` copies bundled yt-dlp and FFmpeg to the engine folder on first run
+- [x] `YtDlpClient.fetch(url)` returns `MediaInfo` (title, channel, duration, thumbnail, formats)
+- [x] Link bar with Paste, Fetch, validation and error messages; Ctrl+V auto-detect
+- [x] Preview card and options card (video/audio switch, quality grid with sizes, container, toggles)
+- [x] Loading skeleton and error state
 - **Done when:** pasting a public video link shows the correct title, thumbnail and quality list.
 
 ## M3 — Download manager
-- [ ] SQLDelight schema and `DownloadRepository`
-- [ ] `DownloadManager` with queue, worker pool, state machine, throttled progress
-- [ ] `ProgressParser` and `ErrorMapper` with unit tests
-- [ ] "Download" and "Add to queue" actions create jobs; merging step handled
-- [ ] Downloads screen: summary cards, tabs, rows with pause, resume, cancel, retry
-- [ ] Restart safety (interrupted items become Paused)
+Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads screen).
+- [x] Downloads saved in `downloads.json` (a small JSON file replaces SQLDelight; swap later only if the list gets large)
+- [x] `DownloadManager` with queue, 2 parallel downloads, status machine, throttled progress
+- [x] `ProgressParser`, `DownloadCommandBuilder` and `DownloadErrorMapper` with unit tests
+- [x] "Download" and "Add to queue" create jobs; merging step handled
+- [ ] Downloads screen: summary cards, tabs, rows with pause, resume, cancel, retry (M3b)
+- [x] Restart safety (interrupted items become Paused)
 - **Done when:** a 1080p video and an MP3 download fully, pause and resume works, and failures show a readable reason.
 
 ## M4 — Library and Settings
