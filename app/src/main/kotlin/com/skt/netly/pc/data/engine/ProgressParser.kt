@@ -12,6 +12,9 @@ sealed interface ParsedLine {
     /** A post-processing step (merging, converting, embedding) has started. */
     data class Finishing(val step: String) : ParsedLine
 
+    /** Fallback when only yt-dlp's normal text progress line is available: 0.0 to 1.0. */
+    data class Percent(val fraction: Float) : ParsedLine
+
     data class FilePath(val path: String) : ParsedLine
 
     data object Other : ParsedLine
@@ -36,6 +39,7 @@ object ProgressParser {
         return when {
             line.startsWith(DL_PREFIX) -> parseDownload(line)
             line.startsWith(PP_PREFIX) -> parsePostProcess(line)
+            line.startsWith("[download]") -> parsePlainPercent(line)
             line.startsWith(FILE_PREFIX) -> {
                 val path = line.removePrefix(FILE_PREFIX).trim()
                 if (path.isEmpty() || path == "NA") ParsedLine.Other else ParsedLine.FilePath(path)
@@ -59,6 +63,13 @@ object ProgressParser {
             speedBytesPerSec = number(parts[4]),
             etaSec = number(parts[5]),
         )
+    }
+
+    private val plainPercent = Regex("""^\[download\]\s+(\d{1,3}(?:\.\d+)?)%""")
+
+    private fun parsePlainPercent(line: String): ParsedLine {
+        val value = plainPercent.find(line)?.groupValues?.get(1)?.toFloatOrNull() ?: return ParsedLine.Other
+        return ParsedLine.Percent((value / 100f).coerceIn(0f, 1f))
     }
 
     private fun parsePostProcess(line: String): ParsedLine {

@@ -16,10 +16,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     runtimeOnly("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
-    // Built-in video player window (plays MP4 with H.264/AAC)
-    for (module in listOf("base", "graphics", "controls", "media", "swing")) {
-        implementation("org.openjfx:javafx-$module:21.0.5:win")
-    }
     testImplementation(kotlin("test"))
 }
 

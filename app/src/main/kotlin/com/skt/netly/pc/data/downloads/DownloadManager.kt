@@ -35,6 +35,7 @@ class DownloadManager(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     maxConcurrent: Int = 2,
     private val retryDelayMs: Long = 5000,
+    private val onCompleted: (DownloadJob) -> Unit = {},
 ) {
     private enum class StopReason { Pause, Remove }
 
@@ -45,6 +46,9 @@ class DownloadManager(
     private val running = ConcurrentHashMap<Long, Job>()
     private val stopReasons = ConcurrentHashMap<Long, StopReason>()
     private val lastProgressAt = ConcurrentHashMap<Long, Long>()
+
+    /** Jobs whose structured progress lines work; the plain-text percent fallback is ignored for them. */
+    private val templateSeen = ConcurrentHashMap.newKeySet<Long>()
     private var nextId = 1L
     @Volatile private var limit = maxConcurrent.coerceIn(1, 6)
 
@@ -190,6 +194,7 @@ class DownloadManager(
             running.remove(id)
             stopReasons.remove(id)
             lastProgressAt.remove(id)
+            templateSeen.remove(id)
             schedule()
         }
         update(id) { it.copy(status = JobStatus.Downloading, errorMessage = null, speedBytesPerSec = null, etaSec = null) }
@@ -200,6 +205,7 @@ class DownloadManager(
     private fun onLine(id: Long, line: ParsedLine) {
         when (line) {
             is ParsedLine.Progress -> {
+                templateSeen.add(id)
                 val now = System.currentTimeMillis()
                 val last = lastProgressAt[id] ?: 0L
                 if (now - last < 250) return
@@ -221,21 +227,34 @@ class DownloadManager(
             is ParsedLine.Finishing ->
                 update(id) { it.copy(status = JobStatus.Merging, progress = 1f, speedBytesPerSec = null, etaSec = null) }
             is ParsedLine.FilePath -> update(id) { it.copy(filePath = line.path) }
+            is ParsedLine.Percent -> {
+                // 100% lines also come from small side files (subtitles, thumbnails); completion is handled elsewhere.
+                if (id in templateSeen || line.fraction >= 0.999f) return
+                val now = System.currentTimeMillis()
+                if (now - (lastProgressAt[id] ?: 0L) < 250) return
+                lastProgressAt[id] = now
+                update(id) { job ->
+                    if (job.status == JobStatus.Merging) job else job.copy(status = JobStatus.Downloading, progress = maxOf(job.progress, line.fraction))
+                }
+            }
             ParsedLine.Other -> Unit
         }
     }
 
     private fun onFinished(id: Long, outcome: DownloadOutcome) {
         when (outcome) {
-            is DownloadOutcome.Completed -> update(id) {
-                it.copy(
-                    status = JobStatus.Completed,
-                    progress = 1f,
-                    speedBytesPerSec = null,
-                    etaSec = null,
-                    filePath = outcome.filePath ?: it.filePath,
-                    errorMessage = null,
-                )
+            is DownloadOutcome.Completed -> {
+                update(id) {
+                    it.copy(
+                        status = JobStatus.Completed,
+                        progress = 1f,
+                        speedBytesPerSec = null,
+                        etaSec = null,
+                        filePath = outcome.filePath ?: it.filePath,
+                        errorMessage = null,
+                    )
+                }
+                find(id)?.let { done -> runCatching { onCompleted(done) } }
             }
             is DownloadOutcome.Failed -> update(id) {
                 it.copy(

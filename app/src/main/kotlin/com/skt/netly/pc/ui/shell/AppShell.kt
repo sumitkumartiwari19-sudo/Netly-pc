@@ -36,6 +36,8 @@ import com.skt.netly.pc.ui.components.NeuTextButton
 import com.skt.netly.pc.ui.downloads.DownloadsScreen
 import com.skt.netly.pc.ui.home.HomeScreen
 import com.skt.netly.pc.ui.library.LibraryScreen
+import com.skt.netly.pc.ui.player.FullPlayer
+import com.skt.netly.pc.ui.player.MiniPlayer
 import com.skt.netly.pc.ui.search.SearchScreen
 import com.skt.netly.pc.ui.settings.SettingsScreen
 import com.skt.netly.pc.ui.theme.Neu
@@ -47,6 +49,8 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     val focus = remember { FocusRequester() }
     val clipboardLink by container.clipboardLink.collectAsState()
     val requested by container.requestScreen.collectAsState()
+    val playerOpen by container.playerOpen.collectAsState()
+    val playing by container.player.state.collectAsState()
     LaunchedEffect(requested) {
         requested?.let {
             screen = it
@@ -74,6 +78,7 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                     }
                     if (target != null) {
                         screen = target
+                        container.playerOpen.value = false
                         true
                     } else {
                         false
@@ -86,7 +91,10 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     ) {
         Sidebar(
             current = screen,
-            onNavigate = { screen = it },
+            onNavigate = {
+                screen = it
+                container.playerOpen.value = false
+            },
             onThemeChange = onThemeChange,
             modifier = Modifier.width(232.dp).fillMaxHeight(),
         )
@@ -110,17 +118,26 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                 }
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (screen) {
+                if (playerOpen && playing.item != null) {
+                    FullPlayer(
+                        container.player,
+                        onClose = { container.playerOpen.value = false },
+                        onDownload = container::downloadCurrent,
+                    )
+                } else when (screen) {
                     Screen.Home -> HomeScreen(container.home)
                     Screen.Search -> SearchScreen(container.search)
                     Screen.Downloads -> DownloadsScreen(container.manager, onGoHome = { screen = Screen.Home })
                     Screen.Library -> LibraryScreen(
-                        container.manager,
-                        onPlay = { job -> job.filePath?.let { container.playFile(it, job.request.title) } },
+                        container.library,
+                        onPlay = { items, index -> container.playLibrary(items, index) },
                         onGoHome = { screen = Screen.Home },
                     )
                     Screen.Settings -> SettingsScreen(container, onThemeChange)
                 }
+            }
+            if (!playerOpen && playing.item != null) {
+                MiniPlayer(container.player, onExpand = { container.playerOpen.value = true })
             }
         }
     }

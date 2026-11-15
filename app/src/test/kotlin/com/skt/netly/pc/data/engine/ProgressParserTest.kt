@@ -40,6 +40,13 @@ class ProgressParserTest {
     }
 
     @Test
+    fun readsPlainPercentLineAsFallback() {
+        assertEquals(ParsedLine.Percent(0.5f), ProgressParser.parse("[download]  50.0% of   10.00MiB at    1.20MiB/s ETA 00:05"))
+        assertEquals(ParsedLine.Percent(1f), ProgressParser.parse("[download] 100% of 10.00MiB in 00:08"))
+        assertEquals(ParsedLine.Other, ProgressParser.parse("[download] Destination: a.mp4"))
+    }
+
+    @Test
     fun ignoresUnrelatedAndBrokenLines() {
         assertEquals(ParsedLine.Other, ProgressParser.parse("[youtube] Extracting URL"))
         assertEquals(ParsedLine.Other, ProgressParser.parse("NETLY_DL|downloading|abc"))

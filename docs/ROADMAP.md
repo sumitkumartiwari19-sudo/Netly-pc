@@ -67,10 +67,15 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 
 ## Added after M6
 - [x] Search screen (videos and playlists) with Play, quick download and options
-- [x] Built-in player window: speed 0.5x to 4x, volume, seek, 360p stream and 720p/1080p (prepared first)
+- [x] Built-in player window (replaced in M8, see below)
 - [x] H.264 first for MP4 downloads (fixes the "AV1 Video Extension" message)
 - [x] Smooth mode for slow PCs (default on for 2 cores or fewer), small memory settings
 - [x] Bundled fonts: Manrope, JetBrains Mono, Noto Sans Devanagari
+
+## M8
+- [x] New in-app player (ffmpeg based, no JavaFX): streams search results online, mini player bar, full player, Music (audio only) mode, previous/next, Up next + autoplay, speed 0.5x to 4x, quality 144p to 720p, volume
+- [x] Download progress fix (`--no-quiet` plus plain percent fallback)
+- [x] Library fix: own saved list (library.json), filled when a download completes, plus a scan of the download folder
 
 ## After v1.0
 - P1 leftovers: embed subtitles/tags, playlist polish, per-item resume across restarts

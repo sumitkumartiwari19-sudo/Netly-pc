@@ -35,6 +35,11 @@ class DownloadCommandBuilderTest {
     private fun List<String>.valueAfter(flag: String): String = this[indexOf(flag) + 1]
 
     @Test
+    fun keepsProgressVisibleWithNoQuiet() {
+        assertTrue("--no-quiet" in build(request()))
+    }
+
+    @Test
     fun buildsMp4VideoCommand() {
         val cmd = build(request())
         assertEquals("yt-dlp.exe", cmd.first())

@@ -7,7 +7,6 @@ import com.skt.netly.pc.data.settings.SettingsRepository
 import com.skt.netly.pc.domain.YoutubeLink
 import com.skt.netly.pc.domain.YoutubeUrl
 import com.skt.netly.pc.domain.model.DownloadRequest
-import com.skt.netly.pc.domain.model.PlayRequest
 import com.skt.netly.pc.domain.model.SearchItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +46,7 @@ class SearchViewModel(
     private val search: YtDlpSearch,
     private val manager: DownloadManager,
     private val settings: SettingsRepository,
-    private val onPlay: (PlayRequest) -> Unit,
+    private val onPlay: (List<SearchItem>, Int) -> Unit,
     private val onOpenInHome: (String) -> Unit,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -134,7 +133,11 @@ class SearchViewModel(
     }
 
     fun play(item: SearchItem) {
-        onPlay(PlayRequest(title = item.title, videoUrl = item.url, videoId = item.id))
+        // Playing from an open playlist queues the playlist; otherwise the current search results are the queue.
+        val s = _state.value
+        val list = s.playlist?.items?.takeIf { it.isNotEmpty() } ?: s.videos
+        val index = list.indexOfFirst { it.id == item.id }
+        if (index >= 0) onPlay(list, index) else onPlay(listOf(item), 0)
     }
 
     fun openInHome(item: SearchItem) = onOpenInHome(item.url)

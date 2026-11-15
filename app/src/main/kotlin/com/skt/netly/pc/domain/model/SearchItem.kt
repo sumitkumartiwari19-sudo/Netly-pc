@@ -11,11 +11,3 @@ data class SearchItem(
     val url: String,
     val count: Int? = null,
 )
-
-/** What the player window should open: a downloaded file, or a YouTube video to stream. */
-data class PlayRequest(
-    val title: String,
-    val videoUrl: String? = null,
-    val videoId: String? = null,
-    val filePath: String? = null,
-)

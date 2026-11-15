@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,8 +26,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.skt.netly.pc.data.downloads.DownloadManager
-import com.skt.netly.pc.domain.model.DownloadJob
+import com.skt.netly.pc.data.library.LibraryItem
+import com.skt.netly.pc.data.library.LibraryRepository
 import com.skt.netly.pc.platform.FileActions
 import com.skt.netly.pc.ui.components.NetThumbnail
 import com.skt.netly.pc.ui.components.NeuLevel
@@ -36,16 +37,19 @@ import com.skt.netly.pc.ui.components.NeuText
 import com.skt.netly.pc.ui.components.NeuTextButton
 import com.skt.netly.pc.ui.theme.Neu
 import com.skt.netly.pc.util.Formatters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
-fun LibraryScreen(manager: DownloadManager, onPlay: (DownloadJob) -> Unit, onGoHome: () -> Unit) {
+fun LibraryScreen(repo: LibraryRepository, onPlay: (List<LibraryItem>, Int) -> Unit, onGoHome: () -> Unit) {
     val c = Neu.colors
-    val jobs by manager.jobs.collectAsState()
+    val all by repo.items.collectAsState()
+    LaunchedEffect(Unit) { withContext(Dispatchers.IO) { repo.scan() } }
     var query by remember { mutableStateOf("") }
     var filterIndex by remember { mutableStateOf(0) }
     var sortIndex by remember { mutableStateOf(0) }
-    val items = LibraryLogic.items(jobs, query, LibraryFilter.entries[filterIndex], LibrarySort.entries[sortIndex])
-    val hasAny = LibraryLogic.items(jobs, "", LibraryFilter.All, LibrarySort.Newest).isNotEmpty()
+    val items = LibraryLogic.items(all, query, LibraryFilter.entries[filterIndex], LibrarySort.entries[sortIndex])
+    val hasAny = LibraryLogic.items(all, "", LibraryFilter.All, LibrarySort.Newest).isNotEmpty()
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Column {
@@ -91,29 +95,36 @@ fun LibraryScreen(manager: DownloadManager, onPlay: (DownloadJob) -> Unit, onGoH
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(items, key = { it.id }) { job -> LibraryCard(job, manager, onPlay) }
+                items(items, key = { it.path }) { item -> LibraryCard(item, repo, onPlay = { onPlay(items, items.indexOf(item)) }) }
             }
         }
     }
 }
 
 @Composable
-private fun LibraryCard(job: DownloadJob, manager: DownloadManager, onPlay: (DownloadJob) -> Unit) {
+private fun LibraryCard(item: LibraryItem, repo: LibraryRepository, onPlay: () -> Unit) {
     val c = Neu.colors
-    val r = job.request
     var confirmDelete by remember { mutableStateOf(false) }
-    val missing = !FileActions.exists(job.filePath)
+    val missing = !FileActions.exists(item.path)
 
     NeuSurface(Modifier.fillMaxWidth(), radius = 22.dp) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            NetThumbnail(
-                r.thumbnailUrl,
-                Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)),
-                contentDescription = r.title,
-            )
-            NeuText(r.title, style = Neu.type.label, maxLines = 2)
+            if (item.thumbnailUrl.isNotBlank()) {
+                NetThumbnail(
+                    item.thumbnailUrl,
+                    Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)),
+                    contentDescription = item.title,
+                )
+            } else {
+                NeuSurface(Modifier.fillMaxWidth().aspectRatio(16f / 9f), level = NeuLevel.Inset, radius = 14.dp) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        NeuText(if (item.audioOnly) "Audio" else "Video", style = Neu.type.title, color = c.textMuted)
+                    }
+                }
+            }
+            NeuText(item.title, style = Neu.type.label, maxLines = 2)
             NeuText(
-                listOf(r.qualityLabel, Formatters.bytes(job.totalBytes).takeIf { it != "—" }, r.channel)
+                listOf(item.quality, Formatters.bytes(item.sizeBytes).takeIf { it != "—" }, item.channel)
                     .filterNotNull().filter { it.isNotBlank() }.joinToString(" · "),
                 style = Neu.type.caption,
                 color = c.textMuted,
@@ -121,14 +132,14 @@ private fun LibraryCard(job: DownloadJob, manager: DownloadManager, onPlay: (Dow
             )
             if (missing) NeuText("File not found. It may have been moved or deleted.", style = Neu.type.caption, color = c.error, maxLines = 2)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                NeuTextButton("Play", onClick = { onPlay(job) }, enabled = !missing, primary = true, minHeight = 38.dp, radius = 12.dp)
-                NeuTextButton("Folder", onClick = { FileActions.showInFolder(job.filePath, r.outputDir) }, minHeight = 38.dp, radius = 12.dp)
+                NeuTextButton("Play", onClick = onPlay, enabled = !missing, primary = true, minHeight = 38.dp, radius = 12.dp)
+                NeuTextButton("Folder", onClick = { FileActions.showInFolder(item.path, java.io.File(item.path).parent.orEmpty()) }, minHeight = 38.dp, radius = 12.dp)
                 NeuTextButton(
                     if (confirmDelete) "Sure?" else "Delete",
                     onClick = {
                         if (confirmDelete) {
-                            FileActions.delete(job.filePath)
-                            manager.remove(job.id)
+                            FileActions.delete(item.path)
+                            repo.remove(item.path)
                         } else {
                             confirmDelete = true
                         }

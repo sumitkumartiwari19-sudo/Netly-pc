@@ -88,6 +88,8 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
                     }
                     SwitchSetting("Watch the clipboard for YouTube links", s.clipboardWatcher) { v -> change { it.copy(clipboardWatcher = v) } }
                     SwitchSetting("Smooth mode (fewer effects, for older PCs)", s.reducedEffects) { v -> change { it.copy(reducedEffects = v) } }
+                    SwitchSetting("Autoplay the next item in the player", s.autoplayNext) { v -> change { it.copy(autoplayNext = v) } }
+                    SwitchSetting("Start the player in music mode (audio only)", s.playerAudioOnly) { v -> change { it.copy(playerAudioOnly = v) } }
                     SwitchSetting("Show notifications", s.notifications) { v -> change { it.copy(notifications = v) } }
                     SwitchSetting("Keep running in the tray when closed", s.minimizeToTray) { v -> change { it.copy(minimizeToTray = v) } }
                     SwitchSetting("Start with Windows", s.startWithWindows) { v ->

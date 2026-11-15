@@ -18,6 +18,8 @@ object AppPaths {
 
     fun engineDir(): File = File(dataDir(), "engine")
 
+    fun libraryFile(): File = File(dataDir(), "library.json")
+
     fun settingsFile(): File = File(dataDir(), "settings.json")
 
     fun downloadsFile(): File = File(dataDir(), "downloads.json")

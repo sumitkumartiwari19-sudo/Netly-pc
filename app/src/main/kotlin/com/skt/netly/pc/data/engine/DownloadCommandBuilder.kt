@@ -14,7 +14,8 @@ object DownloadCommandBuilder {
     ): List<String> = buildList {
         add(exe)
         addAll(listOf("--ignore-config", "--no-playlist", "--no-warnings", "--no-colors"))
-        addAll(listOf("--newline", "--progress", "--no-mtime", "--windows-filenames"))
+        // --print makes yt-dlp quiet, which hid the progress lines; --no-quiet brings them back.
+        addAll(listOf("--no-quiet", "--newline", "--progress", "--no-mtime", "--windows-filenames"))
         addAll(listOf("--retries", "10", "--fragment-retries", "10", "--concurrent-fragments", "4"))
         if (ffmpegDir != null) {
             add("--ffmpeg-location")

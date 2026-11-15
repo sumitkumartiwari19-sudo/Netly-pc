@@ -41,6 +41,10 @@ data class AppSettings(
     val language: String = "en",
     /** Flat surfaces instead of blurred shadows. On by default for PCs with two or fewer cores. */
     val reducedEffects: Boolean = Runtime.getRuntime().availableProcessors() <= 2,
+    /** In-app player: picture height (144 to 720), music mode and autoplay of the next item. */
+    val playerQuality: Int = if (Runtime.getRuntime().availableProcessors() <= 2) 240 else 360,
+    val playerAudioOnly: Boolean = false,
+    val autoplayNext: Boolean = true,
 )
 
 /** Holds the settings in memory and keeps them in settings.json. A damaged file falls back to defaults. */
@@ -92,6 +96,9 @@ class SettingsRepository(private val file: File) {
             put("startWithWindows", s.startWithWindows)
             put("language", s.language)
             put("reducedEffects", s.reducedEffects)
+            put("playerQuality", s.playerQuality)
+            put("playerAudioOnly", s.playerAudioOnly)
+            put("autoplayNext", s.autoplayNext)
         }
 
         fun decode(o: JsonObject): AppSettings {
@@ -115,6 +122,9 @@ class SettingsRepository(private val file: File) {
                 startWithWindows = bool("startWithWindows", d.startWithWindows),
                 language = str("language", d.language),
                 reducedEffects = bool("reducedEffects", d.reducedEffects),
+                playerQuality = int("playerQuality", d.playerQuality).let { if (it in listOf(144, 240, 360, 480, 720)) it else d.playerQuality },
+                playerAudioOnly = bool("playerAudioOnly", d.playerAudioOnly),
+                autoplayNext = bool("autoplayNext", d.autoplayNext),
             )
         }
     }
