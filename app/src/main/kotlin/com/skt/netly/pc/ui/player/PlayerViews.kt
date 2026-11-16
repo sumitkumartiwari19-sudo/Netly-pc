@@ -148,7 +148,7 @@ private fun TimeRow(s: PlayerState, engine: PlayerEngine) {
         NeuText(Formatters.duration(shown), style = Neu.type.mono, color = c.textMuted)
         SeekBar(
             fraction,
-            onSeek = { f -> if (s.durationSec > 0) engine.seekTo(f * s.durationSec) },
+            onSeek = { f -> if (s.durationSec > 0) engine.seekTo((f * s.durationSec).toDouble()) },
             modifier = Modifier.weight(1f),
         )
         NeuText(if (s.durationSec > 0) Formatters.duration(s.durationSec) else "--:--", style = Neu.type.mono, color = c.textMuted)
