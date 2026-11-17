@@ -45,6 +45,8 @@ data class AppSettings(
     val playerQuality: Int = if (Runtime.getRuntime().availableProcessors() <= 2) 240 else 360,
     val playerAudioOnly: Boolean = false,
     val autoplayNext: Boolean = true,
+    /** Left menu shows only icons. */
+    val sidebarCollapsed: Boolean = false,
 )
 
 /** Holds the settings in memory and keeps them in settings.json. A damaged file falls back to defaults. */
@@ -99,6 +101,7 @@ class SettingsRepository(private val file: File) {
             put("playerQuality", s.playerQuality)
             put("playerAudioOnly", s.playerAudioOnly)
             put("autoplayNext", s.autoplayNext)
+            put("sidebarCollapsed", s.sidebarCollapsed)
         }
 
         fun decode(o: JsonObject): AppSettings {
@@ -125,6 +128,7 @@ class SettingsRepository(private val file: File) {
                 playerQuality = int("playerQuality", d.playerQuality).let { if (it in listOf(144, 240, 360, 480, 720)) it else d.playerQuality },
                 playerAudioOnly = bool("playerAudioOnly", d.playerAudioOnly),
                 autoplayNext = bool("autoplayNext", d.autoplayNext),
+                sidebarCollapsed = bool("sidebarCollapsed", d.sidebarCollapsed),
             )
         }
     }

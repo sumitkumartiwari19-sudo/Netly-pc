@@ -1,6 +1,12 @@
 package com.skt.netly.pc.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -74,8 +80,7 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
             )
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        val left: @Composable () -> Unit = {
                 Section("General") {
                     Setting("Language") {
                         NeuSegmented(listOf("English", "हिन्दी"), if (s.language == "hi") 1 else 0, { change { st -> st.copy(language = if (it == 1) "hi" else "en") } })
@@ -116,8 +121,8 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
                         testResult?.let { NeuText(it, style = Neu.type.caption, color = c.textMuted, maxLines = 2, modifier = Modifier.weight(1f)) }
                     }
                 }
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        }
+        val right: @Composable () -> Unit = {
                 Section("Downloads") {
                     Setting("Folder") {
                         NeuText(s.downloadDir, style = Neu.type.mono, color = c.textMuted, maxLines = 2, modifier = Modifier.weight(1f))
@@ -170,8 +175,21 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
                         color = c.textMuted,
                     )
                 }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth >= 1000.dp) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { left() }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(20.dp)) { right() }
+                }
+            } else {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    left()
+                    right()
+                }
             }
         }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -185,11 +203,12 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Setting(label: String, control: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+private fun Setting(label: String, control: @Composable FlowRowScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         NeuText(label, style = Neu.type.label)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically, content = control)
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = control)
     }
 }
 

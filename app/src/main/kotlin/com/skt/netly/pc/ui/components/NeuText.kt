@@ -19,6 +19,7 @@ fun NeuText(
     color: Color = Neu.colors.text,
     maxLines: Int = Int.MAX_VALUE,
     textAlign: TextAlign = TextAlign.Unspecified,
+    softWrap: Boolean = true,
 ) {
     val shown = Strings.tr(LocalLanguage.current, text)
     BasicText(
@@ -26,6 +27,7 @@ fun NeuText(
         modifier = modifier,
         style = style.copy(color = color, textAlign = textAlign),
         maxLines = maxLines,
+        softWrap = softWrap,
         overflow = TextOverflow.Ellipsis,
     )
 }

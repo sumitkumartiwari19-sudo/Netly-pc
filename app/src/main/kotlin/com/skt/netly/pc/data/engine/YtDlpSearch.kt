@@ -6,7 +6,11 @@ import java.net.URLEncoder
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
-data class SearchResults(val videos: List<SearchItem>, val playlists: List<SearchItem>)
+/** [items] keeps YouTube's own order (videos and playlists mixed, best match first). */
+data class SearchResults(val items: List<SearchItem>) {
+    val videos: List<SearchItem> get() = items.filter { !it.isPlaylist }
+    val playlists: List<SearchItem> get() = items.filter { it.isPlaylist }
+}
 
 /** Searches YouTube and reads playlists with yt-dlp's fast "flat" mode (no stream details, so it is quick). */
 class YtDlpSearch(
@@ -15,17 +19,22 @@ class YtDlpSearch(
 ) {
     suspend fun search(query: String): SearchResults = coroutineScope {
         val encoded = URLEncoder.encode(query, "UTF-8")
-        val videos = async { run(listOf("--playlist-end", "20"), "ytsearch20:$query") }
-        // "EgIQAw%3D%3D" is YouTube's own "Playlist" filter for search results.
-        val playlists = async {
-            runCatching {
-                run(listOf("--playlist-end", "8"), "https://www.youtube.com/results?search_query=$encoded&sp=EgIQAw%253D%253D")
-            }.getOrNull()
+        // The normal results page has YouTube's own ranking, so a playlist appears first only when it really matches best.
+        val mixed = async {
+            runCatching { run(listOf("--playlist-end", "30"), "https://www.youtube.com/results?search_query=$encoded") }.getOrNull()
         }
-        val v = videos.await().items.filter { !it.isPlaylist }
-        val p = playlists.await()?.items.orEmpty().filter { it.isPlaylist }
-        SearchResults(v, p)
+        val plain = async { runCatching { run(listOf("--playlist-end", "20"), "ytsearch20:$query") }.getOrNull() }
+        val ordered = mixed.await()?.items.orEmpty().filter { !it.isPlaylist || it.isRealPlaylist() }
+        val fallback = plain.await()?.items.orEmpty().filter { !it.isPlaylist }
+        val result = if (ordered.count { !it.isPlaylist } >= 3) ordered else (ordered + fallback).distinctBy { it.id }
+        if (result.isEmpty() && fallback.isEmpty()) {
+            // Both failed: raise the real error.
+            run(listOf("--playlist-end", "20"), "ytsearch20:$query")
+        }
+        SearchResults(result)
     }
+
+    private fun SearchItem.isRealPlaylist(): Boolean = "list=" in url || "/playlist" in url
 
     suspend fun playlist(playlistId: String): FlatResult =
         run(listOf("--playlist-end", "300"), "https://www.youtube.com/playlist?list=$playlistId")

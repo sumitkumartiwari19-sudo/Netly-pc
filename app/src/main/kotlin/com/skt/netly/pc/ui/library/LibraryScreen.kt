@@ -9,6 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,21 +57,28 @@ fun LibraryScreen(repo: LibraryRepository, onPlay: (List<LibraryItem>, Int) -> U
     val items = LibraryLogic.items(all, query, LibraryFilter.entries[filterIndex], LibrarySort.entries[sortIndex])
     val hasAny = LibraryLogic.items(all, "", LibraryFilter.All, LibrarySort.Newest).isNotEmpty()
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Column {
-            NeuText("Library", style = Neu.type.display)
-            NeuText(
-                "Your finished downloads, ready to play offline.",
-                modifier = Modifier.padding(top = 6.dp),
-                style = Neu.type.body.copy(fontWeight = FontWeight.Medium),
-                color = c.textMuted,
-            )
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(260.dp),
+        modifier = Modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column {
+                NeuText("Library", style = Neu.type.display)
+                NeuText(
+                    "Your finished downloads, ready to play offline.",
+                    modifier = Modifier.padding(top = 6.dp),
+                    style = Neu.type.body.copy(fontWeight = FontWeight.Medium),
+                    color = c.textMuted,
+                )
+            }
         }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            NeuSurface(Modifier.weight(1f), level = NeuLevel.Inset, radius = 16.dp) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            NeuSurface(Modifier.fillMaxWidth(), level = NeuLevel.Inset, radius = 16.dp) {
                 Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 13.dp), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) NeuText("Search your downloads…", color = c.textMuted)
+                    if (query.isEmpty()) NeuText("Search your downloads…", color = c.textMuted, maxLines = 1)
                     BasicTextField(
                         value = query,
                         onValueChange = { query = it },
@@ -76,31 +89,30 @@ fun LibraryScreen(repo: LibraryRepository, onPlay: (List<LibraryItem>, Int) -> U
                     )
                 }
             }
-            NeuSegmented(LibraryFilter.entries.map { it.label }, filterIndex, { filterIndex = it })
-            NeuSegmented(LibrarySort.entries.map { it.label }, sortIndex, { sortIndex = it })
         }
-
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                NeuSegmented(LibraryFilter.entries.map { it.label }, filterIndex, { filterIndex = it })
+                NeuSegmented(LibrarySort.entries.map { it.label }, sortIndex, { sortIndex = it })
+            }
+        }
         if (items.isEmpty()) {
-            Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    NeuText(if (hasAny) "No matches" else "Your downloads will show up here", style = Neu.type.title)
-                    NeuText(if (hasAny) "Try another search or filter." else "Finished videos and music appear in this library.", color = c.textMuted)
-                    if (!hasAny) NeuTextButton("Go to Home", onClick = onGoHome, primary = true)
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        NeuText(if (hasAny) "No matches" else "Your downloads will show up here", style = Neu.type.title)
+                        NeuText(if (hasAny) "Try another search or filter." else "Finished videos and music appear in this library.", color = c.textMuted)
+                        if (!hasAny) NeuTextButton("Go to Home", onClick = onGoHome, primary = true)
+                    }
                 }
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(280.dp),
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                items(items, key = { it.path }) { item -> LibraryCard(item, repo, onPlay = { onPlay(items, items.indexOf(item)) }) }
-            }
+            items(items, key = { it.path }) { item -> LibraryCard(item, repo, onPlay = { onPlay(items, items.indexOf(item)) }) }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LibraryCard(item: LibraryItem, repo: LibraryRepository, onPlay: () -> Unit) {
     val c = Neu.colors
@@ -131,7 +143,7 @@ private fun LibraryCard(item: LibraryItem, repo: LibraryRepository, onPlay: () -
                 maxLines = 1,
             )
             if (missing) NeuText("File not found. It may have been moved or deleted.", style = Neu.type.caption, color = c.error, maxLines = 2)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 NeuTextButton("Play", onClick = onPlay, enabled = !missing, primary = true, minHeight = 38.dp, radius = 12.dp)
                 NeuTextButton("Folder", onClick = { FileActions.showInFolder(item.path, java.io.File(item.path).parent.orEmpty()) }, minHeight = 38.dp, radius = 12.dp)
                 NeuTextButton(

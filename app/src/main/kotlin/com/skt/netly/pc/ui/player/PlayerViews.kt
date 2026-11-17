@@ -7,6 +7,9 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -145,13 +148,13 @@ private fun TimeRow(s: PlayerState, engine: PlayerEngine) {
     val shown = s.positionSec.toLong()
     val fraction = if (s.durationSec > 0) (s.positionSec / s.durationSec).toFloat() else 0f
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        NeuText(Formatters.duration(shown), style = Neu.type.mono, color = c.textMuted)
+        NeuText(Formatters.duration(shown), style = Neu.type.mono, color = c.textMuted, maxLines = 1, softWrap = false)
         SeekBar(
             fraction,
             onSeek = { f -> if (s.durationSec > 0) engine.seekTo((f * s.durationSec).toDouble()) },
             modifier = Modifier.weight(1f),
         )
-        NeuText(if (s.durationSec > 0) Formatters.duration(s.durationSec) else "--:--", style = Neu.type.mono, color = c.textMuted)
+        NeuText(if (s.durationSec > 0) Formatters.duration(s.durationSec) else "--:--", style = Neu.type.mono, color = c.textMuted, maxLines = 1, softWrap = false)
     }
 }
 
@@ -161,7 +164,7 @@ private fun statusText(s: PlayerState): String? = when (s.status) {
     else -> null
 }
 
-/** Small bar shown under every screen while something is loaded. */
+/** Small bar shown under every screen while something is loaded: info and buttons on top, seek bar below. */
 @Composable
 fun MiniPlayer(engine: PlayerEngine, onExpand: () -> Unit, modifier: Modifier = Modifier) {
     val s by engine.state.collectAsState()
@@ -169,29 +172,49 @@ fun MiniPlayer(engine: PlayerEngine, onExpand: () -> Unit, modifier: Modifier = 
     val c = Neu.colors
     val playing = s.status == PlayStatus.Playing || s.status == PlayStatus.Loading
     NeuSurface(modifier.fillMaxWidth(), radius = 22.dp) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            NetThumbnail(item.thumbnailUrl, Modifier.width(80.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)), item.title)
-            Column(Modifier.width(220.dp)) {
-                NeuText(item.title, style = Neu.type.label, maxLines = 1)
-                NeuText(statusText(s) ?: item.channel.ifBlank { "Netly" }, style = Neu.type.caption, color = if (s.status == PlayStatus.Error) c.error else c.textMuted, maxLines = 1)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                NetThumbnail(item.thumbnailUrl, Modifier.width(68.dp).height(38.dp).clip(RoundedCornerShape(8.dp)), item.title)
+                Column(Modifier.weight(1f)) {
+                    NeuText(item.title, style = Neu.type.label, maxLines = 1)
+                    NeuText(
+                        statusText(s) ?: item.channel.ifBlank { "Netly" },
+                        style = Neu.type.caption,
+                        color = if (s.status == PlayStatus.Error) c.error else c.textMuted,
+                        maxLines = 1,
+                    )
+                }
+                RoundButton(G.Prev, "Previous", engine::previous, 38.dp, 15.dp)
+                RoundButton(if (playing && s.status != PlayStatus.Loading) G.Pause else G.Play, if (playing) "Pause" else "Play", engine::togglePause, 44.dp, 18.dp, primary = true)
+                RoundButton(G.Next, "Next", engine::next, 38.dp, 15.dp, enabled = s.hasNext)
+                NeuTextButton(
+                    PlayerChoices.speedLabel(s.speed),
+                    onClick = {
+                        val list = PlayerChoices.speeds
+                        engine.setSpeed(list[(list.indexOf(s.speed) + 1).mod(list.size)])
+                    },
+                    minHeight = 36.dp,
+                    radius = 12.dp,
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                )
+                NeuButton(
+                    onClick = { engine.setAudioOnly(!s.audioOnly) },
+                    selected = s.audioOnly,
+                    minHeight = 36.dp,
+                    radius = 12.dp,
+                    contentDescription = "Music mode",
+                    contentPadding = PaddingValues(horizontal = 10.dp),
+                ) {
+                    NeuIcon(G.Headphones, if (s.audioOnly) c.accentText else c.text, size = 18.dp)
+                }
+                RoundButton(G.Expand, "Open player", onExpand, 36.dp, 15.dp)
+                RoundButton(G.Close, "Close player", engine::stop, 36.dp, 13.dp)
             }
-            RoundButton(G.Prev, "Previous", engine::previous, 40.dp, 16.dp)
-            RoundButton(if (playing && s.status != PlayStatus.Loading) G.Pause else G.Play, if (playing) "Pause" else "Play", engine::togglePause, 48.dp, 20.dp, primary = true)
-            RoundButton(G.Next, "Next", engine::next, 40.dp, 16.dp, enabled = s.hasNext)
-            Column(Modifier.weight(1f)) { TimeRow(s, engine) }
-            NeuTextButton(PlayerChoices.speedLabel(s.speed), onClick = {
-                val list = PlayerChoices.speeds
-                engine.setSpeed(list[(list.indexOf(s.speed) + 1).mod(list.size)])
-            }, minHeight = 38.dp, radius = 12.dp)
-            NeuButton(onClick = { engine.setAudioOnly(!s.audioOnly) }, selected = s.audioOnly, minHeight = 38.dp, radius = 12.dp, contentDescription = "Music mode") {
-                NeuIcon(G.Headphones, if (s.audioOnly) c.accentText else c.text, size = 18.dp)
-            }
-            RoundButton(G.Expand, "Open player", onExpand, 38.dp, 16.dp)
-            RoundButton(G.Close, "Close player", engine::stop, 38.dp, 14.dp)
+            TimeRow(s, engine)
         }
     }
 }
@@ -213,84 +236,147 @@ private fun VideoSurface(frame: ImageBitmap?, modifier: Modifier) {
     }
 }
 
+/** A row of small choice buttons that wraps onto more lines instead of squeezing the text. */
 @OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChoiceRow(label: String, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        NeuText(label, style = Neu.type.overline, color = Neu.colors.textMuted)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEachIndexed { i, text ->
+                NeuTextButton(
+                    text,
+                    onClick = { onSelect(i) },
+                    selected = i == selected,
+                    minHeight = 34.dp,
+                    radius = 12.dp,
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlayerMain(
+    s: PlayerState,
+    frame: ImageBitmap?,
+    engine: PlayerEngine,
+    videoHeight: Dp,
+    onClose: () -> Unit,
+    onDownload: () -> Unit,
+    modifier: Modifier,
+) {
+    val c = Neu.colors
+    val item = s.item
+    val playing = s.status == PlayStatus.Playing || s.status == PlayStatus.Loading
+    val audioMode = s.effectiveAudioOnly
+
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            NeuTextButton("Back", onClose, minHeight = 40.dp, radius = 12.dp)
+            NeuText(item?.title.orEmpty(), style = Neu.type.title, maxLines = 2, modifier = Modifier.weight(1f))
+        }
+
+        Box(
+            Modifier.fillMaxWidth().height(videoHeight).clip(RoundedCornerShape(20.dp)).background(Color(0xFF0B0D11)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (audioMode) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    NetThumbnail(
+                        item?.thumbnailUrl.orEmpty(),
+                        Modifier.height((videoHeight - 64.dp).coerceAtLeast(60.dp)).aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)),
+                        item?.title,
+                    )
+                    NeuText("Audio only · saves data and battery", style = Neu.type.label, color = Color(0xFFB8C0FF), maxLines = 1)
+                }
+            } else {
+                VideoSurface(frame, Modifier.fillMaxSize())
+            }
+            statusText(s)?.let { msg ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    NeuText(
+                        msg,
+                        style = Neu.type.label,
+                        color = if (s.status == PlayStatus.Error) Color(0xFFFF8A8A) else Color.White,
+                        modifier = Modifier.padding(horizontal = 24.dp).background(Color(0x99000000), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                    if (s.status == PlayStatus.Error) NeuTextButton("Retry", onClick = engine::togglePause, primary = true, minHeight = 38.dp, radius = 12.dp)
+                }
+            }
+            if (s.speed != 1f) {
+                NeuText(
+                    PlayerChoices.speedLabel(s.speed),
+                    style = Neu.type.label,
+                    color = Color(0xFFB8C0FF),
+                    maxLines = 1,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(10.dp).background(Color(0x99000000), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp),
+                )
+            }
+        }
+
+        TimeRow(s, engine)
+
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            RoundButton(G.Prev, "Previous", engine::previous, 46.dp, 18.dp)
+            RoundButton(if (playing && s.status != PlayStatus.Loading) G.Pause else G.Play, if (playing) "Pause" else "Play", engine::togglePause, 58.dp, 24.dp, primary = true)
+            RoundButton(G.Next, "Next", engine::next, 46.dp, 18.dp, enabled = s.hasNext)
+            Box(Modifier.weight(1f))
+            NeuIcon(G.Volume, c.textMuted, size = 20.dp)
+            Box(Modifier.width(110.dp)) { SeekBar(s.volume, engine::setVolume) }
+        }
+
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            NeuButton(onClick = { engine.setAudioOnly(!s.audioOnly) }, selected = s.audioOnly, minHeight = 40.dp, radius = 12.dp, contentPadding = PaddingValues(horizontal = 14.dp)) {
+                NeuIcon(G.Headphones, if (s.audioOnly) c.accentText else c.text, size = 18.dp)
+                NeuText("Music mode", style = Neu.type.label, color = if (s.audioOnly) c.accentText else c.text, maxLines = 1, softWrap = false)
+            }
+            NeuTextButton("Download", onDownload, minHeight = 40.dp, radius = 12.dp, enabled = item?.url != null)
+        }
+
+        ChoiceRow("SPEED", PlayerChoices.speeds.map { PlayerChoices.speedLabel(it) }, PlayerChoices.speeds.indexOf(s.speed), { engine.setSpeed(PlayerChoices.speeds[it]) })
+        if (!audioMode) {
+            ChoiceRow("QUALITY", PlayerChoices.qualities.map { "${it}p" }, PlayerChoices.qualities.indexOf(s.quality), { engine.setQuality(PlayerChoices.qualities[it]) })
+        }
+        NeuText(
+            "Tip: 360p uses the least data and runs smoothly on older PCs. Music mode streams only the sound.",
+            style = Neu.type.caption,
+            color = c.textMuted,
+        )
+    }
+}
+
 @Composable
 fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit, modifier: Modifier = Modifier) {
     val s by engine.state.collectAsState()
     val frame by engine.frame.collectAsState()
-    val item = s.item
-    val c = Neu.colors
-    val playing = s.status == PlayStatus.Playing || s.status == PlayStatus.Loading
-    val audioMode = s.effectiveAudioOnly
 
-    Row(modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                NeuTextButton("Back", onClose, minHeight = 40.dp, radius = 12.dp)
-                NeuText(item?.title.orEmpty(), style = Neu.type.title, maxLines = 1, modifier = Modifier.weight(1f))
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val sideBySide = maxWidth >= 760.dp
+        if (sideBySide) {
+            val mainWidth = maxWidth - 320.dp
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                PlayerMain(
+                    s, frame, engine,
+                    videoHeight = (mainWidth * 9f / 16f).coerceIn(160.dp, 360.dp),
+                    onClose = onClose, onDownload = onDownload,
+                    modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(bottom = 16.dp),
+                )
+                UpNext(s, engine, Modifier.width(300.dp).fillMaxHeight())
             }
-
-            Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(0xFF0B0D11)), contentAlignment = Alignment.Center) {
-                if (audioMode) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        NetThumbnail(item?.thumbnailUrl.orEmpty(), Modifier.height(190.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(16.dp)), item?.title)
-                        NeuText("Audio only · saves data and battery", style = Neu.type.label, color = Color(0xFFB8C0FF))
-                    }
-                } else {
-                    VideoSurface(frame, Modifier.fillMaxSize())
-                }
-                statusText(s)?.let { msg ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        NeuText(msg, style = Neu.type.label, color = if (s.status == PlayStatus.Error) Color(0xFFFF8A8A) else Color.White, modifier = Modifier.padding(horizontal = 24.dp))
-                        if (s.status == PlayStatus.Error) NeuTextButton("Retry", onClick = engine::togglePause, primary = true, minHeight = 38.dp, radius = 12.dp)
-                    }
-                }
-                if (s.speed != 1f) {
-                    NeuText(
-                        PlayerChoices.speedLabel(s.speed),
-                        style = Neu.type.label,
-                        color = Color(0xFFB8C0FF),
-                        modifier = Modifier.align(Alignment.TopEnd).padding(12.dp).background(Color(0x99000000), RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 5.dp),
-                    )
-                }
+        } else {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                PlayerMain(
+                    s, frame, engine,
+                    videoHeight = (maxWidth * 9f / 16f).coerceIn(160.dp, 320.dp),
+                    onClose = onClose, onDownload = onDownload,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                UpNext(s, engine, Modifier.fillMaxWidth().height(420.dp))
             }
-
-            TimeRow(s, engine)
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                RoundButton(G.Prev, "Previous", engine::previous, 46.dp, 18.dp)
-                RoundButton(if (playing && s.status != PlayStatus.Loading) G.Pause else G.Play, if (playing) "Pause" else "Play", engine::togglePause, 58.dp, 24.dp, primary = true)
-                RoundButton(G.Next, "Next", engine::next, 46.dp, 18.dp, enabled = s.hasNext)
-                Box(Modifier.weight(1f))
-                NeuIcon(G.Volume, c.textMuted, size = 20.dp)
-                Box(Modifier.width(120.dp)) { SeekBar(s.volume, engine::setVolume) }
-                NeuButton(onClick = { engine.setAudioOnly(!s.audioOnly) }, selected = s.audioOnly, minHeight = 40.dp, radius = 12.dp) {
-                    NeuIcon(G.Headphones, if (s.audioOnly) c.accentText else c.text, size = 18.dp)
-                    NeuText("Music mode", style = Neu.type.label, color = if (s.audioOnly) c.accentText else c.text)
-                }
-                NeuTextButton("Download", onDownload, minHeight = 40.dp, radius = 12.dp)
-            }
-
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    NeuText("SPEED", style = Neu.type.overline, color = c.textMuted)
-                    NeuSegmented(PlayerChoices.speeds.map { PlayerChoices.speedLabel(it) }, PlayerChoices.speeds.indexOf(s.speed).coerceAtLeast(0), { engine.setSpeed(PlayerChoices.speeds[it]) })
-                }
-                if (!audioMode) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        NeuText("QUALITY", style = Neu.type.overline, color = c.textMuted)
-                        NeuSegmented(PlayerChoices.qualities.map { "${it}p" }, PlayerChoices.qualities.indexOf(s.quality).coerceAtLeast(0), { engine.setQuality(PlayerChoices.qualities[it]) })
-                    }
-                }
-            }
-            NeuText(
-                "Tip: 360p uses the least data and runs smoothly on older PCs. Music mode streams only the sound.",
-                style = Neu.type.caption,
-                color = c.textMuted,
-            )
         }
-
-        UpNext(s, engine, Modifier.width(300.dp).fillMaxHeight())
     }
 }
 

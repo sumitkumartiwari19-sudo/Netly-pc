@@ -77,6 +77,12 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [x] Download progress fix (`--no-quiet` plus plain percent fallback)
 - [x] Library fix: own saved list (library.json), filled when a download completes, plus a scan of the download folder
 
+## M9 (layout and search fixes)
+- [x] Search results in YouTube's own order (playlists only when they match best)
+- [x] Every screen scrolls as one page; buttons/chips never wrap their text
+- [x] Player: bigger video, wrapping speed/quality choices, Download under the video, two-row mini player
+- [x] Left menu can collapse to icons and scrolls on short windows
+
 ## After v1.0
 - P1 leftovers: embed subtitles/tags, playlist polish, per-item resume across restarts
 - Google sign-in WebView (E-04), favorites (L-04), FLAC/WAV

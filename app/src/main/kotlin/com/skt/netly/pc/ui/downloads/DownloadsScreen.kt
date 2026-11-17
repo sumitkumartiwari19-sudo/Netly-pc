@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -49,9 +52,13 @@ fun DownloadsScreen(manager: DownloadManager, onGoHome: () -> Unit) {
     val summary = DownloadsLogic.summary(jobs)
     val visible = DownloadsLogic.visible(jobs, tab)
 
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item {
+            Column {
                 NeuText("Downloads", style = Neu.type.display)
                 NeuText(
                     "Everything Netly is fetching right now.",
@@ -60,31 +67,34 @@ fun DownloadsScreen(manager: DownloadManager, onGoHome: () -> Unit) {
                     color = c.textMuted,
                 )
             }
+        }
+        item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 NeuTextButton("Pause all", onClick = manager::pauseAll, enabled = jobs.any { it.isRunning || it.status == JobStatus.Queued })
                 NeuTextButton("Resume all", onClick = manager::resumeAll, enabled = jobs.any { it.status == JobStatus.Paused })
                 NeuTextButton("Clear completed", onClick = manager::clearCompleted, enabled = summary.completed > 0)
             }
         }
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            SummaryCard("Total speed", if (summary.active > 0) Formatters.bytes(summary.totalSpeed) + "/s" else "—", Modifier.weight(1f))
-            SummaryCard("Active", summary.active.toString(), Modifier.weight(1f))
-            SummaryCard("Completed", summary.completed.toString(), Modifier.weight(1f))
-        }
-
-        NeuSegmented(
-            options = tabs.map { t -> "${t.label} (${jobs.count { t.matches(it) }})" },
-            selectedIndex = tabIndex,
-            onSelect = { tabIndex = it },
-        )
-
-        if (visible.isEmpty()) {
-            EmptyState(hasAny = jobs.isNotEmpty(), onGoHome = onGoHome)
-        } else {
-            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(visible, key = { it.id }) { job -> JobRow(job, manager) }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                SummaryCard("Total speed", if (summary.active > 0) Formatters.bytes(summary.totalSpeed) + "/s" else "—", Modifier.weight(1f))
+                SummaryCard("Active", summary.active.toString(), Modifier.weight(1f))
+                SummaryCard("Completed", summary.completed.toString(), Modifier.weight(1f))
             }
+        }
+        item {
+            Row(Modifier.horizontalScroll(rememberScrollState())) {
+                NeuSegmented(
+                    options = tabs.map { t -> "${t.label} (${jobs.count { t.matches(it) }})" },
+                    selectedIndex = tabIndex,
+                    onSelect = { tabIndex = it },
+                )
+            }
+        }
+        if (visible.isEmpty()) {
+            item { EmptyState(hasAny = jobs.isNotEmpty(), onGoHome = onGoHome) }
+        } else {
+            items(visible, key = { it.id }) { job -> JobRow(job, manager) }
         }
     }
 }

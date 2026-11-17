@@ -51,6 +51,7 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     val requested by container.requestScreen.collectAsState()
     val playerOpen by container.playerOpen.collectAsState()
     val playing by container.player.state.collectAsState()
+    val settings by container.settings.state.collectAsState()
     LaunchedEffect(requested) {
         requested?.let {
             screen = it
@@ -63,7 +64,7 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(Neu.colors.bg)
-            .padding(24.dp)
+            .padding(16.dp)
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { event ->
@@ -87,16 +88,18 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                     false
                 }
             },
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Sidebar(
             current = screen,
+            collapsed = settings.sidebarCollapsed,
+            onToggleCollapsed = { container.settings.update { it.copy(sidebarCollapsed = !it.sidebarCollapsed) } },
             onNavigate = {
                 screen = it
                 container.playerOpen.value = false
             },
             onThemeChange = onThemeChange,
-            modifier = Modifier.width(232.dp).fillMaxHeight(),
+            modifier = Modifier.width(if (settings.sidebarCollapsed) 72.dp else 232.dp).fillMaxHeight(),
         )
         Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             clipboardLink?.let { link ->

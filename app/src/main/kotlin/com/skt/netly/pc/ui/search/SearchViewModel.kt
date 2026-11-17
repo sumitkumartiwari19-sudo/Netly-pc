@@ -36,11 +36,13 @@ data class SearchUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val searched: Boolean = false,
-    val videos: List<SearchItem> = emptyList(),
-    val playlists: List<SearchItem> = emptyList(),
+    /** Videos and playlists in YouTube's order. */
+    val results: List<SearchItem> = emptyList(),
     val playlist: PlaylistState? = null,
     val notice: String? = null,
-)
+) {
+    val videos: List<SearchItem> get() = results.filter { !it.isPlaylist }
+}
 
 class SearchViewModel(
     private val search: YtDlpSearch,
@@ -80,9 +82,9 @@ class SearchViewModel(
         job = scope.launch {
             try {
                 val results = search.search(text)
-                _state.update { it.copy(loading = false, videos = results.videos, playlists = results.playlists) }
+                _state.update { it.copy(loading = false, results = results.items) }
             } catch (e: FetchException) {
-                _state.update { it.copy(loading = false, error = e.error.message, videos = emptyList(), playlists = emptyList()) }
+                _state.update { it.copy(loading = false, error = e.error.message, results = emptyList()) }
             }
         }
     }

@@ -97,6 +97,7 @@ fun NeuTextButton(
     enabled: Boolean = true,
     radius: Dp = 16.dp,
     minHeight: Dp = 44.dp,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
 ) {
     val c = Neu.colors
     val color = when {
@@ -112,7 +113,8 @@ fun NeuTextButton(
         enabled = enabled,
         radius = radius,
         minHeight = minHeight,
+        contentPadding = contentPadding,
     ) {
-        NeuText(text = text, style = Neu.type.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = color)
+        NeuText(text = text, style = Neu.type.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = color, maxLines = 1, softWrap = false)
     }
 }
