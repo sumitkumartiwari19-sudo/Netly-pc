@@ -57,6 +57,7 @@ private val nameKeys = listOf("title", "channel_title", "title_id")
 private val cookieLabels = listOf("None", "Chrome", "Edge", "Firefox")
 private val cookieKeys = listOf("none", "chrome", "edge", "firefox")
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     val c = Neu.colors

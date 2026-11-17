@@ -354,9 +354,10 @@ fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit
     val frame by engine.frame.collectAsState()
 
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val sideBySide = maxWidth >= 760.dp
+        val total = maxWidth
+        val sideBySide = total >= 760.dp
         if (sideBySide) {
-            val mainWidth = maxWidth - 320.dp
+            val mainWidth = total - 320.dp
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 PlayerMain(
                     s, frame, engine,
@@ -370,7 +371,7 @@ fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 PlayerMain(
                     s, frame, engine,
-                    videoHeight = (maxWidth * 9f / 16f).coerceIn(160.dp, 320.dp),
+                    videoHeight = (total * 9f / 16f).coerceIn(160.dp, 320.dp),
                     onClose = onClose, onDownload = onDownload,
                     modifier = Modifier.fillMaxWidth(),
                 )
