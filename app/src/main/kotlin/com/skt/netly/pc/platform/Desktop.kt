@@ -16,6 +16,16 @@ object SingleInstance {
     private var channel: FileChannel? = null
     private var lock: FileLock? = null
 
+    private fun showFlag() = File(AppPaths.dataDir().also { it.mkdirs() }, "show.flag")
+
+    /** Called by a second launch: asks the running Netly to come to the front. */
+    fun requestShow() {
+        runCatching { showFlag().writeText("show") }
+    }
+
+    /** True once if another launch asked the running Netly to show its window. */
+    fun consumeShowRequest(): Boolean = runCatching { showFlag().let { it.isFile && it.delete() } }.getOrDefault(false)
+
     fun acquire(): Boolean = try {
         val dir = AppPaths.dataDir().also { it.mkdirs() }
         val ch = FileChannel.open(File(dir, "app.lock").toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE)

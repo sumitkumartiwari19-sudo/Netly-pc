@@ -50,19 +50,35 @@ private object TrayIcon : Painter() {
 }
 
 fun main() {
-    if (!SingleInstance.acquire()) return
+    if (!SingleInstance.acquire()) {
+        SingleInstance.requestShow()
+        return
+    }
 
     application {
         val container = remember { AppContainer() }
         val settings by container.settings.state.collectAsState()
         val trayState = rememberTrayState()
         var visible by remember { mutableStateOf(true) }
+        var showTick by remember { mutableStateOf(0) }
         SideEffect { NeuPerf.reduced = settings.reducedEffects }
         val mode = runCatching { ThemeMode.valueOf(settings.theme) }.getOrDefault(ThemeMode.System)
 
         fun quit() {
             container.close()
             exitApplication()
+        }
+
+        // Opening Netly again (icon, Start menu) while it hides in the tray brings the window back.
+        LaunchedEffect(Unit) {
+            SingleInstance.consumeShowRequest()
+            while (true) {
+                delay(400)
+                if (withContext(Dispatchers.IO) { SingleInstance.consumeShowRequest() }) {
+                    visible = true
+                    showTick++
+                }
+            }
         }
 
         // Notify when a download finishes or fails.
@@ -106,9 +122,15 @@ fun main() {
             icon = TrayIcon,
             state = trayState,
             tooltip = AppInfo.NAME,
-            onAction = { visible = true },
+            onAction = {
+                visible = true
+                showTick++
+            },
             menu = {
-                Item("Open Netly", onClick = { visible = true })
+                Item("Open Netly", onClick = {
+                    visible = true
+                    showTick++
+                })
                 Item("Pause all", onClick = { container.manager.pauseAll() })
                 Item("Resume all", onClick = { container.manager.resumeAll() })
                 Separator()
@@ -123,6 +145,13 @@ fun main() {
             state = rememberWindowState(width = 1280.dp, height = 800.dp),
         ) {
             LaunchedEffect(Unit) { window.minimumSize = Dimension(1100, 700) }
+            LaunchedEffect(showTick) {
+                if (showTick > 0) {
+                    window.isMinimized = false
+                    window.toFront()
+                    window.requestFocus()
+                }
+            }
             NetlyTheme(mode, settings.language) {
                 AppShell(container, onThemeChange = { m -> container.settings.update { it.copy(theme = m.name) } })
             }

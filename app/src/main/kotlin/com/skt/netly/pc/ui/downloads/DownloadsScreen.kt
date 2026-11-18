@@ -83,13 +83,12 @@ fun DownloadsScreen(manager: DownloadManager, onGoHome: () -> Unit) {
             }
         }
         item {
-            Row(Modifier.horizontalScroll(rememberScrollState())) {
-                NeuSegmented(
-                    options = tabs.map { t -> "${t.label} (${jobs.count { t.matches(it) }})" },
-                    selectedIndex = tabIndex,
-                    onSelect = { tabIndex = it },
-                )
-            }
+            NeuSegmented(
+                options = tabs.map { t -> "${t.label} (${jobs.count { t.matches(it) }})" },
+                selectedIndex = tabIndex,
+                onSelect = { tabIndex = it },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
         if (visible.isEmpty()) {
             item { EmptyState(hasAny = jobs.isNotEmpty(), onGoHome = onGoHome) }

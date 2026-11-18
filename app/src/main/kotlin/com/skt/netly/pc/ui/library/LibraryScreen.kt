@@ -46,6 +46,7 @@ import com.skt.netly.pc.util.Formatters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LibraryScreen(repo: LibraryRepository, onPlay: (List<LibraryItem>, Int) -> Unit, onGoHome: () -> Unit) {
     val c = Neu.colors
@@ -91,7 +92,7 @@ fun LibraryScreen(repo: LibraryRepository, onPlay: (List<LibraryItem>, Int) -> U
             }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 NeuSegmented(LibraryFilter.entries.map { it.label }, filterIndex, { filterIndex = it })
                 NeuSegmented(LibrarySort.entries.map { it.label }, sortIndex, { sortIndex = it })
             }
