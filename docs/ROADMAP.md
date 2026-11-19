@@ -83,6 +83,12 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [x] Player: bigger video, wrapping speed/quality choices, Download under the video, two-row mini player
 - [x] Left menu can collapse to icons and scrolls on short windows
 
+## M10 (speed, fullscreen, polish)
+- [x] Search and play talk to YouTube directly (fast); yt-dlp only as fallback; next video address is prepared early
+- [x] Full-screen video (button, double-tap, F11, Esc to leave)
+- [x] Light animations (screen fade, sidebar, mini player), off in low-effects mode
+- [x] Offline files get a preview picture (cut with ffmpeg) for Library and mini player
+
 ## After v1.0
 - P1 leftovers: embed subtitles/tags, playlist polish, per-item resume across restarts
 - Google sign-in WebView (E-04), favorites (L-04), FLAC/WAV

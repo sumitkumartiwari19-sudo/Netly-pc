@@ -66,6 +66,12 @@ class PlayerEngine(
         startCurrent(0.0)
     }
 
+    /** Updates queue pictures (key = item key) without touching playback. */
+    fun setThumbnails(map: Map<String, String>) {
+        if (map.isEmpty()) return
+        _state.update { st -> st.copy(queue = st.queue.map { q -> map[q.key]?.let { q.copy(thumbnailUrl = it) } ?: q }) }
+    }
+
     fun togglePause() {
         val s = _state.value
         when (s.status) {
@@ -188,10 +194,14 @@ class PlayerEngine(
                     proxy = optionsProvider().proxy.trim(),
                     startPaused = wasPaused,
                     generation = myGeneration,
+                    item = item,
                 )
                 if (myGeneration != generation) return@launch
                 session = s
                 s.start()
+                // Warm up the next video's address so "next" starts quickly.
+                val nextItem = snapshot.queue.getOrNull(snapshot.index + 1)
+                if (nextItem?.url != null) scope.launch { runCatching { resolver.resolve(nextItem.url, snapshot.quality) } }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -239,6 +249,7 @@ class PlayerEngine(
         private val proxy: String,
         private val startPaused: Boolean,
         private val generation: Int,
+        private val item: PlayItem?,
     ) {
         @Volatile private var closed = false
         @Volatile private var paused = startPaused
@@ -287,7 +298,7 @@ class PlayerEngine(
         }
 
         private fun inputArgs(url: String): List<String> = buildList {
-            addAll(listOf("-hide_banner", "-loglevel", "error", "-nostdin"))
+            addAll(listOf("-hide_banner", "-loglevel", "error", "-nostdin", "-probesize", "1500000", "-analyzeduration", "1000000"))
             if (url.startsWith("http")) {
                 streams.userAgent?.let { addAll(listOf("-user_agent", it)) }
                 addAll(listOf("-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"))
@@ -325,6 +336,13 @@ class PlayerEngine(
                     l.write(buffer, 0, n - n % 4)
                 }
                 if (closed) return
+                if (!gotData && streams.native && item?.url != null) {
+                    // The direct address was refused: switch to yt-dlp for this video and try again.
+                    val u = item.url
+                    resolver.disableNative(u)
+                    if (!closed) startCurrent(startSec, keepPaused = startPaused)
+                    return
+                }
                 if (!gotData) {
                     val reason = errors().lineSequence().lastOrNull { it.isNotBlank() }?.take(140)
                     fail(if (reason.isNullOrBlank()) "This video could not be played. Try another quality." else "Could not play: $reason")

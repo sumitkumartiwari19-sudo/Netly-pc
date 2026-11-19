@@ -51,7 +51,7 @@ import kotlinx.coroutines.withContext
 fun LibraryScreen(repo: LibraryRepository, onPlay: (List<LibraryItem>, Int) -> Unit, onGoHome: () -> Unit) {
     val c = Neu.colors
     val all by repo.items.collectAsState()
-    LaunchedEffect(Unit) { withContext(Dispatchers.IO) { repo.scan() } }
+    LaunchedEffect(Unit) { withContext(Dispatchers.IO) { repo.scan(); repo.fillThumbnails() } }
     var query by remember { mutableStateOf("") }
     var filterIndex by remember { mutableStateOf(0) }
     var sortIndex by remember { mutableStateOf(0) }

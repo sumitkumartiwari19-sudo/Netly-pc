@@ -37,6 +37,11 @@ fun NetThumbnail(url: String, modifier: Modifier = Modifier, contentDescription:
 }
 
 private fun loadImage(url: String): ImageBitmap? = runCatching {
+    if (url.isBlank()) return@runCatching null
+    if (!url.startsWith("http", ignoreCase = true)) {
+        val f = java.io.File(url)
+        return@runCatching if (f.isFile) ImageIO.read(f)?.toComposeImageBitmap() else null
+    }
     val connection = URL(url).openConnection().apply {
         connectTimeout = 8_000
         readTimeout = 8_000

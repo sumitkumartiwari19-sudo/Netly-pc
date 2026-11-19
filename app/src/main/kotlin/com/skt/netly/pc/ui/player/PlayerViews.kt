@@ -1,6 +1,13 @@
 package com.skt.netly.pc.ui.player
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import com.skt.netly.pc.ui.theme.NeuPerf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -75,6 +82,7 @@ private object G {
     const val Headphones = "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z"
     const val Expand = "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
     const val Close = "M6 6l12 12M18 6L6 18"
+    const val Shrink = "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"
     const val Volume = "M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7"
 }
 
@@ -266,6 +274,7 @@ private fun PlayerMain(
     videoHeight: Dp,
     onClose: () -> Unit,
     onDownload: () -> Unit,
+    onFullscreen: () -> Unit,
     modifier: Modifier,
 ) {
     val c = Neu.colors
@@ -280,7 +289,10 @@ private fun PlayerMain(
         }
 
         Box(
-            Modifier.fillMaxWidth().height(videoHeight).clip(RoundedCornerShape(20.dp)).background(Color(0xFF0B0D11)),
+            Modifier.fillMaxWidth().height(videoHeight).clip(RoundedCornerShape(20.dp)).background(Color(0xFF0B0D11))
+                .pointerInput(audioMode) {
+                    if (!audioMode) detectTapGestures(onDoubleTap = { onFullscreen() })
+                },
             contentAlignment = Alignment.Center,
         ) {
             if (audioMode) {
@@ -305,6 +317,15 @@ private fun PlayerMain(
                     )
                     if (s.status == PlayStatus.Error) NeuTextButton("Retry", onClick = engine::togglePause, primary = true, minHeight = 38.dp, radius = 12.dp)
                 }
+            }
+            if (!audioMode) {
+                Box(
+                    Modifier.align(Alignment.BottomEnd).padding(10.dp).size(36.dp)
+                        .background(Color(0x99000000), RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onFullscreen() },
+                    contentAlignment = Alignment.Center,
+                ) { Glyph(G.Expand, Color.White, 18.dp) }
             }
             if (s.speed != 1f) {
                 NeuText(
@@ -349,7 +370,7 @@ private fun PlayerMain(
 }
 
 @Composable
-fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit, modifier: Modifier = Modifier) {
+fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit, onFullscreen: () -> Unit, modifier: Modifier = Modifier) {
     val s by engine.state.collectAsState()
     val frame by engine.frame.collectAsState()
 
@@ -362,7 +383,7 @@ fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit
                 PlayerMain(
                     s, frame, engine,
                     videoHeight = (mainWidth * 9f / 16f).coerceIn(160.dp, 360.dp),
-                    onClose = onClose, onDownload = onDownload,
+                    onClose = onClose, onDownload = onDownload, onFullscreen = onFullscreen,
                     modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(bottom = 16.dp),
                 )
                 UpNext(s, engine, Modifier.width(300.dp).fillMaxHeight())
@@ -372,7 +393,7 @@ fun FullPlayer(engine: PlayerEngine, onClose: () -> Unit, onDownload: () -> Unit
                 PlayerMain(
                     s, frame, engine,
                     videoHeight = (total * 9f / 16f).coerceIn(160.dp, 320.dp),
-                    onClose = onClose, onDownload = onDownload,
+                    onClose = onClose, onDownload = onDownload, onFullscreen = onFullscreen,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 UpNext(s, engine, Modifier.fillMaxWidth().height(420.dp))
@@ -409,6 +430,85 @@ private fun QueueRow(item: PlayItem, current: Boolean, onClick: () -> Unit) {
                     color = if (current) c.accentText else c.textMuted,
                     maxLines = 1,
                 )
+            }
+        }
+    }
+}
+
+
+/** Full-screen video: tap = play/pause, double-tap = leave. Controls fade in when the mouse moves and hide after a few seconds. */
+@Composable
+fun FullscreenPlayer(engine: PlayerEngine, onExit: () -> Unit, modifier: Modifier = Modifier) {
+    val s by engine.state.collectAsState()
+    val frame by engine.frame.collectAsState()
+    val c = Neu.colors
+    var activity by remember { mutableStateOf(0) }
+    var controls by remember { mutableStateOf(true) }
+    val playing = s.status == PlayStatus.Playing || s.status == PlayStatus.Loading
+    LaunchedEffect(activity, playing) {
+        controls = true
+        if (playing) {
+            delay(3000)
+            controls = false
+        }
+    }
+    val audioMode = s.effectiveAudioOnly
+    Box(
+        modifier.fillMaxSize().background(Color.Black)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val e = awaitPointerEvent()
+                        if (e.type == PointerEventType.Move || e.type == PointerEventType.Press) activity++
+                    }
+                }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(onDoubleTap = { onExit() }, onTap = { engine.togglePause() })
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (audioMode) {
+            NetThumbnail(s.item?.thumbnailUrl.orEmpty(), Modifier.fillMaxSize(0.5f).aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)), s.item?.title)
+        } else {
+            VideoSurface(frame, Modifier.fillMaxSize())
+        }
+        statusText(s)?.let { msg ->
+            NeuText(
+                msg,
+                style = Neu.type.label,
+                color = if (s.status == PlayStatus.Error) Color(0xFFFF8A8A) else Color.White,
+                modifier = Modifier.background(Color(0x99000000), RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
+        AnimatedVisibility(
+            visible = controls,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = if (NeuPerf.reduced) androidx.compose.animation.EnterTransition.None else fadeIn(),
+            exit = if (NeuPerf.reduced) androidx.compose.animation.ExitTransition.None else fadeOut(),
+        ) {
+            NeuSurface(Modifier.padding(24.dp).fillMaxWidth(0.8f), radius = 20.dp) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    NeuText(s.item?.title.orEmpty(), style = Neu.type.label, maxLines = 1)
+                    TimeRow(s, engine)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        RoundButton(G.Prev, "Previous", engine::previous, 42.dp, 16.dp)
+                        RoundButton(if (playing && s.status != PlayStatus.Loading) G.Pause else G.Play, if (playing) "Pause" else "Play", engine::togglePause, 52.dp, 22.dp, primary = true)
+                        RoundButton(G.Next, "Next", engine::next, 42.dp, 16.dp, enabled = s.hasNext)
+                        Box(Modifier.weight(1f))
+                        NeuTextButton(
+                            PlayerChoices.speedLabel(s.speed),
+                            onClick = {
+                                val i = PlayerChoices.speeds.indexOf(s.speed)
+                                engine.setSpeed(PlayerChoices.speeds[(i + 1) % PlayerChoices.speeds.size])
+                            },
+                            minHeight = 38.dp, radius = 12.dp,
+                        )
+                        NeuIcon(G.Volume, c.textMuted, size = 20.dp)
+                        Box(Modifier.width(100.dp)) { SeekBar(s.volume, engine::setVolume) }
+                        RoundButton(G.Shrink, "Exit full screen", onExit, 42.dp, 18.dp)
+                    }
+                }
             }
         }
     }

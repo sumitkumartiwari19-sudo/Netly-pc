@@ -11,6 +11,7 @@ import com.skt.netly.pc.data.engine.YtDlpDownloader
 import com.skt.netly.pc.data.engine.YtDlpSearch
 import com.skt.netly.pc.data.library.LibraryItem
 import com.skt.netly.pc.data.library.LibraryRepository
+import com.skt.netly.pc.data.library.ThumbnailCache
 import com.skt.netly.pc.domain.model.DownloadRequest
 import com.skt.netly.pc.domain.model.SearchItem
 import com.skt.netly.pc.domain.model.JobStatus
@@ -44,12 +45,15 @@ class AppContainer {
     val client = YtDlpClient(engine) { options() }
     private val downloader = YtDlpDownloader(engine) { options() }
     /** Finished downloads. Kept separately from the Downloads list, so clearing that list never empties the Library. */
-    val library = LibraryRepository(AppPaths.libraryFile()) { File(settings.state.value.downloadDir) }
+    val library = LibraryRepository(
+        AppPaths.libraryFile(),
+        thumbnails = { ThumbnailCache.ensure(engine.ffmpegFile, it) },
+    ) { File(settings.state.value.downloadDir) }
     val manager = DownloadManager(
         downloader,
         DownloadStore(AppPaths.downloadsFile()),
         maxConcurrent = settings.state.value.maxConcurrent,
-        onCompleted = { job -> library.addFromJob(job) },
+        onCompleted = { job -> library.addFromJob(job); scope.launch { library.fillThumbnails() } },
     )
     val updater = EngineUpdater(engine)
     val home = HomeViewModel(engine, client, manager, settings)
@@ -61,6 +65,9 @@ class AppContainer {
         },
         onPrefsChanged = { q, a, p -> settings.update { it.copy(playerQuality = q, playerAudioOnly = a, autoplayNext = p) } },
     )
+
+    /** True while the video is shown full screen. */
+    val fullscreen = MutableStateFlow(false)
 
     /** True while the big player is shown instead of the current screen. */
     val playerOpen = MutableStateFlow(false)
@@ -92,10 +99,19 @@ class AppContainer {
 
     fun playLibrary(items: List<LibraryItem>, index: Int) {
         player.playQueue(
-            items.map { PlayItem(it.path, it.title.ifBlank { File(it.path).nameWithoutExtension }, it.channel, it.thumbnailUrl, it.durationSec, filePath = it.path) },
+            items.map { PlayItem(it.path, it.title.ifBlank { File(it.path).nameWithoutExtension }, it.channel, ThumbnailCache.existing(it.path) ?: it.thumbnailUrl, it.durationSec, filePath = it.path) },
             index,
         )
         playerOpen.value = true
+        scope.launch {
+            // Pictures missing for offline files are cut from the files themselves, then shown in the player.
+            val made = HashMap<String, String>()
+            for (i in items) {
+                if (ThumbnailCache.existing(i.path) != null || i.thumbnailUrl.startsWith("http")) continue
+                ThumbnailCache.ensure(engine.ffmpegFile, i.path)?.let { made[i.path] = it }
+            }
+            player.setThumbnails(made)
+        }
     }
 
     /** Downloads the video that is playing now, using the player's current video or music mode. */
@@ -136,6 +152,7 @@ class AppContainer {
             // Downloads finished before the Library had its own list are added once; then new files in the folder are picked up.
             manager.jobs.value.filter { it.status == JobStatus.Completed }.forEach { library.addFromJob(it) }
             library.scan()
+            library.fillThumbnails()
         }
         scope.launch {
             settings.state.collect { manager.setMaxConcurrent(it.maxConcurrent) }

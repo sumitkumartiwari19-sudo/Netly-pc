@@ -3,7 +3,6 @@ package com.skt.netly.pc.ui.shell
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -12,7 +11,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.LaunchedEffect
+import com.skt.netly.pc.ui.player.FullscreenPlayer
+import com.skt.netly.pc.ui.theme.NeuPerf
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +65,9 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     val playerOpen by container.playerOpen.collectAsState()
     val playing by container.player.state.collectAsState()
     val settings by container.settings.state.collectAsState()
+    val fullscreen by container.fullscreen.collectAsState()
+    val inFullscreen = fullscreen && playing.item != null
+    LaunchedEffect(playing.item == null) { if (playing.item == null) container.fullscreen.value = false }
     LaunchedEffect(requested) {
         requested?.let {
             screen = it
@@ -60,15 +76,23 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
     }
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Neu.colors.bg)
-            .padding(16.dp)
+            .background(if (inFullscreen) androidx.compose.ui.graphics.Color.Black else Neu.colors.bg)
             .focusRequester(focus)
             .focusable()
             .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && event.isCtrlPressed) {
+                if (event.type == KeyEventType.KeyDown && !event.isCtrlPressed && inFullscreen && event.key == Key.Escape) {
+                    container.fullscreen.value = false
+                    true
+                } else if (event.type == KeyEventType.KeyDown && !event.isCtrlPressed && event.key == Key.F11 && playing.item != null) {
+                    container.fullscreen.value = !container.fullscreen.value
+                    true
+                } else if (event.type == KeyEventType.KeyDown && !event.isCtrlPressed && inFullscreen && event.key == Key.Spacebar) {
+                    container.player.togglePause()
+                    true
+                } else if (event.type == KeyEventType.KeyDown && event.isCtrlPressed) {
                     val target = when (event.key) {
                         Key.One -> Screen.Home
                         Key.Two -> Screen.Search
@@ -88,8 +112,17 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                     false
                 }
             },
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+      if (inFullscreen) {
+        FullscreenPlayer(container.player, onExit = { container.fullscreen.value = false })
+      } else Row(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+      ) {
+        val sidebarWidth by animateDpAsState(
+            if (settings.sidebarCollapsed) 72.dp else 232.dp,
+            animationSpec = if (NeuPerf.reduced) snap() else tween(200),
+        )
         Sidebar(
             current = screen,
             collapsed = settings.sidebarCollapsed,
@@ -99,11 +132,11 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                 container.playerOpen.value = false
             },
             onThemeChange = onThemeChange,
-            modifier = Modifier.width(if (settings.sidebarCollapsed) 72.dp else 232.dp).fillMaxHeight(),
+            modifier = Modifier.width(sidebarWidth).fillMaxHeight(),
         )
-        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.weight(1f).fillMaxHeight()) {
             clipboardLink?.let { link ->
-                NeuSurface(Modifier.fillMaxWidth(), radius = 18.dp) {
+                NeuSurface(Modifier.fillMaxWidth().padding(bottom = 16.dp), radius = 18.dp) {
                     Row(
                         Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -121,27 +154,39 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                 }
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                if (playerOpen && playing.item != null) {
-                    FullPlayer(
-                        container.player,
-                        onClose = { container.playerOpen.value = false },
-                        onDownload = container::downloadCurrent,
-                    )
-                } else when (screen) {
-                    Screen.Home -> HomeScreen(container.home)
-                    Screen.Search -> SearchScreen(container.search)
-                    Screen.Downloads -> DownloadsScreen(container.manager, onGoHome = { screen = Screen.Home })
-                    Screen.Library -> LibraryScreen(
-                        container.library,
-                        onPlay = { items, index -> container.playLibrary(items, index) },
-                        onGoHome = { screen = Screen.Home },
-                    )
-                    Screen.Settings -> SettingsScreen(container, onThemeChange)
+                val showPlayer = playerOpen && playing.item != null
+                Crossfade(
+                    targetState = if (showPlayer) "player" else screen.name,
+                    animationSpec = if (NeuPerf.reduced) snap() else tween(180),
+                ) { key ->
+                    if (key == "player") {
+                        FullPlayer(
+                            container.player,
+                            onClose = { container.playerOpen.value = false },
+                            onDownload = container::downloadCurrent,
+                            onFullscreen = { container.fullscreen.value = true },
+                        )
+                    } else when (Screen.valueOf(key)) {
+                        Screen.Home -> HomeScreen(container.home)
+                        Screen.Search -> SearchScreen(container.search)
+                        Screen.Downloads -> DownloadsScreen(container.manager, onGoHome = { screen = Screen.Home })
+                        Screen.Library -> LibraryScreen(
+                            container.library,
+                            onPlay = { items, index -> container.playLibrary(items, index) },
+                            onGoHome = { screen = Screen.Home },
+                        )
+                        Screen.Settings -> SettingsScreen(container, onThemeChange)
+                    }
                 }
             }
-            if (!playerOpen && playing.item != null) {
-                MiniPlayer(container.player, onExpand = { container.playerOpen.value = true })
+            AnimatedVisibility(
+                visible = !playerOpen && playing.item != null,
+                enter = if (NeuPerf.reduced) EnterTransition.None else fadeIn(tween(160)) + expandVertically(tween(200)),
+                exit = if (NeuPerf.reduced) ExitTransition.None else fadeOut(tween(120)) + shrinkVertically(tween(160)),
+            ) {
+                MiniPlayer(container.player, onExpand = { container.playerOpen.value = true }, modifier = Modifier.padding(top = 16.dp))
             }
         }
+      }
     }
 }

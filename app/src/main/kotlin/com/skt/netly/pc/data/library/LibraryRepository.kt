@@ -40,6 +40,8 @@ data class LibraryItem(
  */
 class LibraryRepository(
     private val file: File,
+    /** Makes a preview picture for a media file path; returns the picture's path or null. */
+    private val thumbnails: suspend (String) -> String? = { null },
     private val downloadDir: () -> File,
 ) {
     private val _items = MutableStateFlow(load())
@@ -93,6 +95,26 @@ class LibraryRepository(
         save(next)
         return true
     }
+
+    /** Gives items without a usable picture a preview cut from the file. Safe to call often. */
+    suspend fun fillThumbnails() {
+        val todo = _items.value.filter { !hasPicture(it.thumbnailUrl) }
+        if (todo.isEmpty()) return
+        val made = HashMap<String, String>()
+        for (item in todo) {
+            val t = runCatching { thumbnails(item.path) }.getOrNull() ?: continue
+            made[item.path] = t
+        }
+        if (made.isEmpty()) return
+        synchronized(this) {
+            val next = _items.value.map { i -> made[i.path]?.let { i.copy(thumbnailUrl = it) } ?: i }
+            _items.value = next
+            save(next)
+        }
+    }
+
+    private fun hasPicture(url: String): Boolean =
+        url.startsWith("http", ignoreCase = true) || (url.isNotBlank() && File(url).isFile)
 
     @Synchronized
     fun remove(path: String) {

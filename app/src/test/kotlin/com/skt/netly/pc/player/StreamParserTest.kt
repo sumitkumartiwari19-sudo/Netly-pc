@@ -55,3 +55,29 @@ class StreamParserTest {
         assertNull(StreamParser.parse("""{"formats":[]}""", 360).audioUrl)
     }
 }
+
+class NativeStreamParserTest {
+    private val json = """
+      {"playabilityStatus":{"status":"OK"},"videoDetails":{"lengthSeconds":"215"},
+       "streamingData":{"adaptiveFormats":[
+        {"url":"a1","mimeType":"audio/mp4; codecs=\"mp4a.40.2\"","averageBitrate":130000},
+        {"url":"v360","mimeType":"video/mp4; codecs=\"avc1.4d401e\"","height":360,"averageBitrate":400000},
+        {"url":"v720","mimeType":"video/mp4; codecs=\"avc1.64001f\"","height":720,"averageBitrate":900000}
+       ]}}
+    """.trimIndent()
+
+    @Test
+    fun picksStreamsFromPlayerApi() {
+        val r = StreamParser.parseNative(json, 360, "UA")
+        assertNotNull(r)
+        assertEquals("a1", r.audioUrl)
+        assertEquals("v360", r.videoUrl)
+        assertEquals(215L, r.durationSec)
+        assertEquals(true, r.native)
+    }
+
+    @Test
+    fun refusedVideoGivesNull() {
+        assertNull(StreamParser.parseNative("""{"playabilityStatus":{"status":"LOGIN_REQUIRED"}}""", 360, "UA"))
+    }
+}

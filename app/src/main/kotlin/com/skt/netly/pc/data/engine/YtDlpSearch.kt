@@ -2,9 +2,8 @@ package com.skt.netly.pc.data.engine
 
 import com.skt.netly.pc.domain.model.SearchItem
 import java.io.IOException
-import java.net.URLEncoder
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** [items] keeps YouTube's own order (videos and playlists mixed, best match first). */
 data class SearchResults(val items: List<SearchItem>) {
@@ -12,29 +11,29 @@ data class SearchResults(val items: List<SearchItem>) {
     val playlists: List<SearchItem> get() = items.filter { it.isPlaylist }
 }
 
-/** Searches YouTube and reads playlists with yt-dlp's fast "flat" mode (no stream details, so it is quick). */
+/** Searches YouTube. The fast direct request comes first; yt-dlp's flat mode is the slower backup. */
 class YtDlpSearch(
     private val engine: EngineRepository,
     private val optionsProvider: () -> EngineOptions = { EngineOptions() },
 ) {
-    suspend fun search(query: String): SearchResults = coroutineScope {
-        val encoded = URLEncoder.encode(query, "UTF-8")
-        // The normal results page has YouTube's own ranking, so a playlist appears first only when it really matches best.
-        val mixed = async {
-            runCatching { run(listOf("--playlist-end", "30"), "https://www.youtube.com/results?search_query=$encoded") }.getOrNull()
-        }
-        val plain = async { runCatching { run(listOf("--playlist-end", "20"), "ytsearch20:$query") }.getOrNull() }
-        val ordered = mixed.await()?.items.orEmpty().filter { !it.isPlaylist || it.isRealPlaylist() }
-        val fallback = plain.await()?.items.orEmpty().filter { !it.isPlaylist }
-        val result = if (ordered.count { !it.isPlaylist } >= 3) ordered else (ordered + fallback).distinctBy { it.id }
-        if (result.isEmpty() && fallback.isEmpty()) {
-            // Both failed: raise the real error.
-            run(listOf("--playlist-end", "20"), "ytsearch20:$query")
-        }
-        SearchResults(result)
+    private val cache = object : LinkedHashMap<String, SearchResults>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, SearchResults>?) = size > 10
     }
 
-    private fun SearchItem.isRealPlaylist(): Boolean = "list=" in url || "/playlist" in url
+    suspend fun search(query: String): SearchResults {
+        val key = query.trim().lowercase()
+        synchronized(cache) { cache[key] }?.let { return it }
+        val fast = runCatching {
+            withContext(Dispatchers.IO) { InnertubeSearchParser.parse(Innertube.search(query, optionsProvider().proxy)) }
+        }.getOrNull()
+        val result = if (fast != null && fast.any { !it.isPlaylist }) {
+            SearchResults(fast)
+        } else {
+            SearchResults(run(listOf("--playlist-end", "20"), "ytsearch20:$query").items.filter { !it.isPlaylist })
+        }
+        synchronized(cache) { cache[key] = result }
+        return result
+    }
 
     suspend fun playlist(playlistId: String): FlatResult =
         run(listOf("--playlist-end", "300"), "https://www.youtube.com/playlist?list=$playlistId")
@@ -50,7 +49,7 @@ class YtDlpSearch(
             add(target)
         }
         val result = try {
-            ProcessRunner.run(command, timeoutMs = 60_000)
+            ProcessRunner.run(command, timeoutMs = 90_000)
         } catch (e: ProcessTimeoutException) {
             throw FetchException(FetchError(ErrorKind.Timeout, "YouTube took too long to respond. Check your connection and try again."))
         } catch (e: IOException) {

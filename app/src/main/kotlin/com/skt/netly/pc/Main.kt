@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Notification
 import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberTrayState
 import androidx.compose.ui.window.rememberWindowState
@@ -138,11 +139,17 @@ fun main() {
             },
         )
 
+        val windowState = rememberWindowState(width = 1280.dp, height = 800.dp)
+        val fullscreen by container.fullscreen.collectAsState()
+        LaunchedEffect(fullscreen) {
+            windowState.placement = if (fullscreen) WindowPlacement.Fullscreen else WindowPlacement.Floating
+        }
+
         Window(
             visible = visible,
             onCloseRequest = { if (settings.minimizeToTray) visible = false else quit() },
             title = AppInfo.NAME,
-            state = rememberWindowState(width = 1280.dp, height = 800.dp),
+            state = windowState,
         ) {
             LaunchedEffect(Unit) { window.minimumSize = Dimension(1100, 700) }
             LaunchedEffect(showTick) {
