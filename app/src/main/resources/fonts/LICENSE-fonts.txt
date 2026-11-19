@@ -1,0 +1,1 @@
+Manrope (SIL Open Font License 1.1), JetBrains Mono (SIL OFL 1.1) and Noto Sans Devanagari (SIL OFL 1.1) are bundled with Netly.
