@@ -2,6 +2,7 @@ package com.skt.netly.pc.ui.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,7 +73,7 @@ fun DownloadDialog(
         Modifier.fillMaxSize().background(Color(0x99000000)).pointerInput(Unit) { detectTapsToDismiss(onDismiss) },
         contentAlignment = Alignment.Center,
     ) {
-        NeuSurface(Modifier.width(480.dp).padding(16.dp).pointerInput(Unit) { androidx.compose.foundation.gestures.detectTapGestures { } }, radius = 24.dp) {
+        NeuSurface(Modifier.width(480.dp).padding(16.dp).pointerInput(Unit) { detectTapGestures { } }, radius = 24.dp) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     NetThumbnail(item.thumbnailUrl, Modifier.width(96.dp).heightIn(min = 54.dp, max = 54.dp).clip(RoundedCornerShape(10.dp)), item.title)
@@ -141,5 +142,5 @@ private fun ChoiceLine(label: String, size: String, selected: Boolean, onClick: 
 }
 
 private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.detectTapsToDismiss(onDismiss: () -> Unit) {
-    androidx.compose.foundation.gestures.detectTapGestures(onTap = { onDismiss() })
+    detectTapGestures(onTap = { onDismiss() })
 }
