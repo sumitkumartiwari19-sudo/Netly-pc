@@ -33,10 +33,21 @@ class YtDlpDownloader(
             return DownloadOutcome.Failed(e.error)
         }
         val ffmpegDir = if (engine.ffmpegFile.isFile) engine.engineDir.absolutePath else null
-        val command = DownloadCommandBuilder.build(exe.absolutePath, ffmpegDir, request, optionsProvider())
         return withContext(Dispatchers.IO) {
             File(request.outputDir).mkdirs()
-            runProcess(command, onLine)
+            // If YouTube refuses ("not a bot"), the same download is tried again with other client sets (and cookies if allowed).
+            val first = BotGuard.attempt(
+                optionsProvider(),
+                refused = { r: DownloadOutcome -> r is DownloadOutcome.Failed && (r.error.kind == ErrorKind.Blocked || BotGuard.isCookieProblem(r.error.detail.orEmpty())) },
+            ) { o ->
+                runProcess(DownloadCommandBuilder.build(exe.absolutePath, ffmpegDir, request, o), onLine)
+            }
+            // Still refused after every yt-dlp try: save the stream with ffmpeg instead (no yt-dlp involved).
+            if (first is DownloadOutcome.Failed && first.error.kind == ErrorKind.Blocked) {
+                NativeDownloader(engine, optionsProvider).download(request, onLine) ?: first
+            } else {
+                first
+            }
         }
     }
 

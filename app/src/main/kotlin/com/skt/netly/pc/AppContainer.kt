@@ -114,10 +114,18 @@ class AppContainer {
         }
     }
 
-    /** Downloads the video that is playing now, using the player's current video or music mode. */
+    /** The video whose download-choice dialog is open (null = closed). */
+    val downloadDialog = MutableStateFlow<PlayItem?>(null)
+
+    /** "Download" in the player: opens the quality dialog for the video that is playing now. */
     fun downloadCurrent() {
-        val s = player.state.value
-        val item = s.item ?: return
+        val item = player.state.value.item ?: return
+        if (item.url == null) return
+        downloadDialog.value = item
+    }
+
+    /** Queues the download chosen in the dialog. [height] is null for audio. */
+    fun startDownload(item: PlayItem, audio: Boolean, height: Int?, audioKey: String) {
         val url = item.url ?: return
         val cfg = settings.state.value
         manager.enqueue(
@@ -128,16 +136,19 @@ class AppContainer {
                 channel = item.channel,
                 thumbnailUrl = item.thumbnailUrl,
                 durationSec = item.durationSec,
-                audioOnly = s.audioOnly,
-                height = if (s.audioOnly) null else (if (cfg.defaultHeight <= 0) 1080 else cfg.defaultHeight).coerceAtMost(1080),
-                audioKey = "mp3-192",
-                container = "MP4",
+                audioOnly = audio,
+                height = if (audio) null else height,
+                audioKey = audioKey,
+                // MP4 (H.264) plays everywhere but YouTube offers it only up to 1080p; bigger sizes are saved as MKV.
+                container = if ((height ?: 0) > 1080) "MKV" else "MP4",
                 embedThumbnail = true,
                 embedSubtitles = false,
                 outputDir = cfg.downloadDir,
             ),
             priority = true,
         )
+        downloadDialog.value = null
+        requestScreen.value = Screen.Downloads
     }
 
     /** A YouTube link found on the clipboard by the clipboard watcher, waiting for the user's decision. */

@@ -31,7 +31,7 @@ object ErrorMapper {
                 FetchError(ErrorKind.AgeRestricted, "This video is age-restricted and needs a signed-in browser.", detail)
 
             "not a bot" in lower || "sign in to confirm" in lower || "http error 403" in lower || "403: forbidden" in lower ->
-                FetchError(ErrorKind.Blocked, "YouTube blocked this request. Try again in a moment.", detail)
+                FetchError(ErrorKind.Blocked, BotGuard.BLOCKED_MESSAGE, detail)
 
             "private video" in lower || "video unavailable" in lower || "is not available" in lower ||
                 "has been removed" in lower || "this video is unavailable" in lower ->

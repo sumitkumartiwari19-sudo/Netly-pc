@@ -89,6 +89,10 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [x] Light animations (screen fade, sidebar, mini player), off in low-effects mode
 - [x] Offline files get a preview picture (cut with ffmpeg) for Library and mini player
 
+## M11 (bot block and download dialog)
+- [x] If YouTube refuses yt-dlp on every try, the download is saved straight with ffmpeg from YouTube's player API
+- [x] Download from the player opens a quality dialog (144p up to the highest, sizes, audio formats)
+
 ## After v1.0
 - P1 leftovers: embed subtitles/tags, playlist polish, per-item resume across restarts
 - Google sign-in WebView (E-04), favorites (L-04), FLAC/WAV

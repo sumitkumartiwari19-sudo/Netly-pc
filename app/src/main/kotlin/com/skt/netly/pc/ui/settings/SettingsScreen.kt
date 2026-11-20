@@ -54,8 +54,8 @@ private val limitLabels = listOf("Unlimited", "1 MB/s", "2 MB/s", "5 MB/s")
 private val limitValues = listOf(0, 1024, 2048, 5120)
 private val nameLabels = listOf("Title", "Channel – Title", "Title [id]")
 private val nameKeys = listOf("title", "channel_title", "title_id")
-private val cookieLabels = listOf("None", "Chrome", "Edge", "Firefox")
-private val cookieKeys = listOf("none", "chrome", "edge", "firefox")
+private val cookieLabels = listOf("None", "Auto", "Chrome", "Edge", "Firefox")
+private val cookieKeys = listOf("none", "auto", "chrome", "edge", "firefox")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -107,7 +107,17 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
                     Setting("Use cookies from browser") {
                         NeuSegmented(cookieLabels, cookieKeys.indexOf(s.cookiesBrowser).coerceAtLeast(0), { change { st -> st.copy(cookiesBrowser = cookieKeys[it]) } })
                     }
-                    NeuText("Pick the browser where you are signed in to YouTube if a video asks you to sign in.", style = Neu.type.caption, color = c.textMuted)
+                    NeuText("Auto uses your browser's YouTube sign-in only when YouTube says \"confirm you are not a bot\". Firefox works best; for Chrome or Edge use a cookies file.", style = Neu.type.caption, color = c.textMuted)
+                    Setting("Cookies file (cookies.txt)") {
+                        NeuText(if (s.cookiesFile.isBlank()) "Not set" else s.cookiesFile, style = Neu.type.mono, color = c.textMuted, maxLines = 2, modifier = Modifier.weight(1f))
+                        NeuTextButton("Choose", onClick = {
+                            scope.launch {
+                                val picked = withContext(Dispatchers.IO) { FileActions.chooseFile(s.cookiesFile, "Choose cookies.txt") }
+                                if (picked != null) change { it.copy(cookiesFile = picked) }
+                            }
+                        })
+                        if (s.cookiesFile.isNotBlank()) NeuTextButton("Clear", onClick = { change { it.copy(cookiesFile = "") } })
+                    }
                     Setting("Proxy") {
                         TextBox(s.proxy, "http://host:port (optional)", Modifier.weight(1f)) { v -> change { it.copy(proxy = v) } }
                     }

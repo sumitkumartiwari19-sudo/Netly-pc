@@ -66,6 +66,8 @@ class PlayerEngine(
         startCurrent(0.0)
     }
 
+    suspend fun mediaInfo(url: String) = resolver.mediaInfo(url)
+
     /** Updates queue pictures (key = item key) without touching playback. */
     fun setThumbnails(map: Map<String, String>) {
         if (map.isEmpty()) return

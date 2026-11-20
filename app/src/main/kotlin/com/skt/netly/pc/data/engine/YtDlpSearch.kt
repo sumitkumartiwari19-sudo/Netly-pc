@@ -40,16 +40,17 @@ class YtDlpSearch(
 
     private suspend fun run(extra: List<String>, target: String): FlatResult {
         val exe = engine.awaitReady()
-        val command = buildList {
-            add(exe.absolutePath)
-            addAll(listOf("--ignore-config", "--no-warnings", "--no-colors", "--flat-playlist", "-J"))
-            addAll(extra)
-            addAll(optionsProvider().networkArgs(includeRate = false))
-            add("--")
-            add(target)
-        }
         val result = try {
-            ProcessRunner.run(command, timeoutMs = 90_000)
+            BotGuard.runProcess(optionsProvider(), timeoutMs = 90_000) { o ->
+                buildList {
+                    add(exe.absolutePath)
+                    addAll(listOf("--ignore-config", "--no-warnings", "--no-colors", "--flat-playlist", "-J"))
+                    addAll(extra)
+                    addAll(o.networkArgs(includeRate = false))
+                    add("--")
+                    add(target)
+                }
+            }
         } catch (e: ProcessTimeoutException) {
             throw FetchException(FetchError(ErrorKind.Timeout, "YouTube took too long to respond. Check your connection and try again."))
         } catch (e: IOException) {

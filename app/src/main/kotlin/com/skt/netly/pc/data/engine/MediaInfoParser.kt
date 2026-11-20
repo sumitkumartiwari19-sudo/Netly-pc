@@ -14,7 +14,7 @@ import kotlinx.serialization.json.jsonObject
 
 /** Reads the JSON printed by `yt-dlp -J` and builds the quality and size options shown on the Home screen. */
 object MediaInfoParser {
-    private val standardHeights = listOf(2160, 1440, 1080, 720, 480, 360)
+    private val standardHeights = listOf(2160, 1440, 1080, 720, 480, 360, 240, 144)
 
     private data class Stream(
         val height: Int?,

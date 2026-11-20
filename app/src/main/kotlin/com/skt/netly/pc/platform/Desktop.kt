@@ -92,6 +92,14 @@ object FileActions {
 
     fun exists(path: String?): Boolean = path != null && File(path).isFile
 
+    /** Shows a file picker for a cookies.txt file. Returns null when the user cancels. */
+    fun chooseFile(start: String, title: String): String? = runCatching {
+        val chooser = JFileChooser(File(start).takeIf { it.isDirectory } ?: File(System.getProperty("user.home") ?: "."))
+        chooser.fileSelectionMode = JFileChooser.FILES_ONLY
+        chooser.dialogTitle = title
+        if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) chooser.selectedFile.absolutePath else null
+    }.getOrNull()
+
     /** Shows a folder picker. Returns null when the user cancels. */
     fun chooseFolder(start: String): String? = runCatching {
         val chooser = JFileChooser(File(start).takeIf { it.isDirectory })

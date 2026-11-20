@@ -13,20 +13,20 @@ class YtDlpClient(
     suspend fun fetch(link: YoutubeLink.Video): MediaInfo {
         val exe = engine.awaitReady()
 
-        val command = buildList {
-            add(exe.absolutePath)
-            addAll(listOf("-J", "--no-playlist", "--no-warnings", "--no-colors", "--ignore-config"))
-            if (engine.ffmpegFile.isFile) {
-                add("--ffmpeg-location")
-                add(engine.engineDir.absolutePath)
-            }
-            addAll(optionsProvider().networkArgs(includeRate = false))
-            add("--")
-            add(link.canonicalUrl)
-        }
-
         val result = try {
-            ProcessRunner.run(command, timeoutMs = 60_000)
+            BotGuard.runProcess(optionsProvider(), timeoutMs = 60_000) { o ->
+                buildList {
+                    add(exe.absolutePath)
+                    addAll(listOf("-J", "--no-playlist", "--no-warnings", "--no-colors", "--ignore-config"))
+                    if (engine.ffmpegFile.isFile) {
+                        add("--ffmpeg-location")
+                        add(engine.engineDir.absolutePath)
+                    }
+                    addAll(o.networkArgs(includeRate = false))
+                    add("--")
+                    add(link.canonicalUrl)
+                }
+            }
         } catch (e: ProcessTimeoutException) {
             throw FetchException(
                 FetchError(ErrorKind.Timeout, "YouTube took too long to respond. Check your connection and try again."),

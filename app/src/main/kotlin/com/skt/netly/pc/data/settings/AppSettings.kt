@@ -29,8 +29,10 @@ data class AppSettings(
     val speedLimitKb: Int = 0,
     /** title, channel_title or title_id. */
     val nameTemplate: String = "title",
-    /** none, chrome, edge, firefox or brave. */
+    /** none, auto (only when YouTube refuses), chrome, edge, firefox or brave. */
     val cookiesBrowser: String = "none",
+    /** Path of a cookies.txt file, or empty. */
+    val cookiesFile: String = "",
     val proxy: String = "",
     val autoUpdateEngine: Boolean = true,
     val clipboardWatcher: Boolean = false,
@@ -90,6 +92,7 @@ class SettingsRepository(private val file: File) {
             put("speedLimitKb", s.speedLimitKb)
             put("nameTemplate", s.nameTemplate)
             put("cookiesBrowser", s.cookiesBrowser)
+            put("cookiesFile", s.cookiesFile)
             put("proxy", s.proxy)
             put("autoUpdateEngine", s.autoUpdateEngine)
             put("clipboardWatcher", s.clipboardWatcher)
@@ -117,6 +120,7 @@ class SettingsRepository(private val file: File) {
                 speedLimitKb = int("speedLimitKb", d.speedLimitKb).coerceAtLeast(0),
                 nameTemplate = str("nameTemplate", d.nameTemplate),
                 cookiesBrowser = str("cookiesBrowser", d.cookiesBrowser),
+                cookiesFile = str("cookiesFile", d.cookiesFile),
                 proxy = str("proxy", d.proxy),
                 autoUpdateEngine = bool("autoUpdateEngine", d.autoUpdateEngine),
                 clipboardWatcher = bool("clipboardWatcher", d.clipboardWatcher),

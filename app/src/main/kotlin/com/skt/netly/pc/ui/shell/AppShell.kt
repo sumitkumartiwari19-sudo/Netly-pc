@@ -23,6 +23,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.LaunchedEffect
+import com.skt.netly.pc.ui.player.DownloadDialog
 import com.skt.netly.pc.ui.player.FullscreenPlayer
 import com.skt.netly.pc.ui.theme.NeuPerf
 import androidx.compose.foundation.layout.Box
@@ -187,6 +188,15 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
                 MiniPlayer(container.player, onExpand = { container.playerOpen.value = true }, modifier = Modifier.padding(top = 16.dp))
             }
         }
+      }
+      val dialogItem by container.downloadDialog.collectAsState()
+      dialogItem?.let { di ->
+        DownloadDialog(
+            engine = container.player,
+            item = di,
+            onDismiss = { container.downloadDialog.value = null },
+            onStart = { audio, h, key -> container.startDownload(di, audio, h, key) },
+        )
       }
     }
 }

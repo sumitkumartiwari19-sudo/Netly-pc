@@ -1,6 +1,8 @@
 package com.skt.netly.pc.player
 
+import com.skt.netly.pc.data.engine.BotGuard
 import com.skt.netly.pc.data.engine.EngineOptions
+import com.skt.netly.pc.data.engine.NativeInfo
 import com.skt.netly.pc.data.engine.EngineRepository
 import com.skt.netly.pc.data.engine.ProcessRunner
 import com.skt.netly.pc.data.engine.Innertube
@@ -163,19 +165,39 @@ class StreamResolver(
 
     private suspend fun fetch(videoUrl: String): String {
         val exe = engine.awaitReady()
-        val command = buildList {
-            add(exe.absolutePath)
-            addAll(listOf("--ignore-config", "--no-warnings", "--no-colors", "--no-playlist", "-J"))
-            addAll(optionsProvider().networkArgs(includeRate = false))
-            add("--")
-            add(videoUrl)
+        val result = BotGuard.runProcess(optionsProvider(), 90_000) { o ->
+            buildList {
+                add(exe.absolutePath)
+                addAll(listOf("--ignore-config", "--no-warnings", "--no-colors", "--no-playlist", "-J"))
+                addAll(o.networkArgs(includeRate = false))
+                add("--")
+                add(videoUrl)
+            }
         }
-        val result = ProcessRunner.run(command, 90_000)
         val text = result.stdout.trim()
         if (result.exitCode != 0 || !text.startsWith("{")) {
+            if (BotGuard.isBlocked(result.stderr)) error(BotGuard.BLOCKED_MESSAGE)
             error(result.stderr.lineSequence().lastOrNull { it.isNotBlank() }?.take(160) ?: "Could not load this video.")
         }
         return text
+    }
+
+    /** Quality and size options for the download dialog. Direct YouTube answer first, yt-dlp as backup. */
+    suspend fun mediaInfo(videoUrl: String): com.skt.netly.pc.domain.model.MediaInfo {
+        val id = videoIdOf(videoUrl)
+        if (id != null) {
+            val key = "n:$id"
+            val now = System.currentTimeMillis()
+            val cached = cache[key]?.takeIf { now - it.at < 2 * 60 * 60 * 1000 }?.json
+            val json = cached ?: runCatching {
+                withContext(Dispatchers.IO) { Innertube.player(id, optionsProvider().proxy) }.also { remember(key, it) }
+            }.getOrNull()
+            json?.let { NativeInfo.toInfo(it) }?.let { return it }
+        }
+        val now = System.currentTimeMillis()
+        val hit = cache[videoUrl]?.takeIf { now - it.at < 2 * 60 * 60 * 1000 }
+        val json = hit?.json ?: fetch(videoUrl).also { remember(videoUrl, it) }
+        return com.skt.netly.pc.data.engine.MediaInfoParser.parse(json)
     }
 
     fun forget(videoUrl: String) {
