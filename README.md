@@ -30,11 +30,11 @@ Explore the Netly desktop experience through its interface previews.
       <sub>Your starting point for discovering and accessing media.</sub>
     </td>
     <td align="center" width="50%">
-      <strong>Search</strong>
+      <strong>Search &amp; Player</strong>
       <br /><br />
-      <img src="screenshots/search.png" alt="Netly Search Screen" width="100%" />
+      <img src="screenshots/player.png" alt="Netly Search and Player" width="100%" />
       <br />
-      <sub>Find videos and playlists directly inside the application.</sub>
+      <sub>Search YouTube and play videos or music right inside the application.</sub>
     </td>
   </tr>
   <tr>
@@ -62,13 +62,16 @@ Explore the Netly desktop experience through its interface previews.
       <sub>Customize quality, downloads, appearance, and preferences.</sub>
     </td>
     <td align="center" width="50%">
-      <strong>One Unified Experience</strong>
+      <strong>Choose Your Quality</strong>
       <br /><br />
-      <p>🎬 Video downloads<br />🎵 Music streaming<br />⚡ Smart download management<br />🎨 Light & Dark themes</p>
-      <sub>Everything you need in one desktop application.</sub>
+      <img src="screenshots/dialogue.png" alt="Netly Download Quality Dialog" width="100%" />
+      <br />
+      <sub>Pick any quality from 144p to 4K, or an audio format, before downloading.</sub>
     </td>
   </tr>
 </table>
+
+<p align="center">🎬 Video downloads · 🎵 Music streaming · ⚡ Smart download management · 🎨 Light &amp; Dark themes</p>
 
 ---
 
