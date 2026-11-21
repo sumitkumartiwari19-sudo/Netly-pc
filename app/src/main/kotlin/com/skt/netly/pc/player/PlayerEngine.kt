@@ -55,6 +55,10 @@ class PlayerEngine(
     private var starting: Job? = null
     private var generation = 0
 
+    /** How many times the same item was restarted after the stream stopped early (connection cut). */
+    private var earlyEndRetries = 0
+    private var earlyEndFrom = 0.0
+
     @Volatile
     private var gain = initial.volume * initial.volume
 
@@ -234,6 +238,24 @@ class PlayerEngine(
     private fun onSessionEnded(gen: Int) {
         if (gen != generation) return
         val s = _state.value
+        // The stream stopped long before the end (network cut, address expired): never skip the song for that.
+        val current = s.item
+        val early = current != null && s.durationSec > 0 && s.positionSec < s.durationSec - 5
+        if (early && current != null) {
+            if (s.positionSec > earlyEndFrom + 30) earlyEndRetries = 0
+            if (earlyEndRetries < 3) {
+                earlyEndRetries++
+                earlyEndFrom = s.positionSec
+                // From the second try on, use yt-dlp for this video (fresh addresses) instead of the direct ones.
+                if (earlyEndRetries >= 2) current.url?.let { resolver.disableNative(it) }
+                startCurrent(s.positionSec)
+            } else {
+                earlyEndRetries = 0
+                fail("The connection was lost. Press play to continue from here.")
+            }
+            return
+        }
+        earlyEndRetries = 0
         if (s.autoplay && s.hasNext) {
             jumpTo(s.index + 1)
         } else {
