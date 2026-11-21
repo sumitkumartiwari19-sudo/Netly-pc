@@ -66,6 +66,21 @@ jobs:
           Invoke-WebRequest $url -OutFile ffmpeg.zip
           Expand-Archive ffmpeg.zip -DestinationPath ffmpeg-tmp
           $exe = Get-ChildItem ffmpeg-tmp -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+          # Verify the download when the publisher lists a checksum for it.
+          try {
+            Invoke-WebRequest "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256" -OutFile ffsums.txt
+            $name = "ffmpeg-master-latest-win64-lgpl.zip"
+            $line = Get-Content ffsums.txt | Where-Object { $_ -match [regex]::Escape($name) + '$' } | Select-Object -First 1
+            if ($line) {
+              $expected = ($line -split '\s+')[0].ToLower()
+              $actual = (Get-FileHash ffmpeg.zip -Algorithm SHA256).Hash.ToLower()
+              if ($expected -ne $actual) { throw "FFmpeg checksum mismatch" }
+              Write-Host "FFmpeg checksum OK"
+            } else { Write-Host "No checksum line for FFmpeg; skipped" }
+          } catch {
+            if ($_.Exception.Message -like "*mismatch*") { throw }
+            Write-Host "FFmpeg checksum list not available; skipped"
+          }
           Copy-Item $exe.FullName "$dir/ffmpeg.exe"
           Write-Host "FFmpeg OK"
 
@@ -100,5 +115,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          body_path: docs/RELEASE_NOTES.md
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}

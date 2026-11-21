@@ -49,6 +49,8 @@ data class AppSettings(
     val autoplayNext: Boolean = true,
     /** Left menu shows only icons. */
     val sidebarCollapsed: Boolean = false,
+    /** Ask GitHub (once per start) whether a newer Netly release exists. Nothing is installed automatically. */
+    val checkAppUpdates: Boolean = true,
 )
 
 /** Holds the settings in memory and keeps them in settings.json. A damaged file falls back to defaults. */
@@ -105,6 +107,7 @@ class SettingsRepository(private val file: File) {
             put("playerAudioOnly", s.playerAudioOnly)
             put("autoplayNext", s.autoplayNext)
             put("sidebarCollapsed", s.sidebarCollapsed)
+            put("checkAppUpdates", s.checkAppUpdates)
         }
 
         fun decode(o: JsonObject): AppSettings {
@@ -133,6 +136,7 @@ class SettingsRepository(private val file: File) {
                 playerAudioOnly = bool("playerAudioOnly", d.playerAudioOnly),
                 autoplayNext = bool("autoplayNext", d.autoplayNext),
                 sidebarCollapsed = bool("sidebarCollapsed", d.sidebarCollapsed),
+                checkAppUpdates = bool("checkAppUpdates", d.checkAppUpdates),
             )
         }
     }

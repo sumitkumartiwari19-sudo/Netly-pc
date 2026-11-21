@@ -8,6 +8,22 @@ plugins {
 
 val appVersion = (findProperty("appVersion") as String?) ?: "0.0.1"
 
+// The app reads its own version from this generated file (shown in Settings and used by the update check).
+val genVersion = tasks.register("genVersion") {
+    val out = layout.buildDirectory.file("generated/res/netly-version.txt")
+    inputs.property("v", appVersion)
+    outputs.file(out)
+    doLast {
+        val f = out.get().asFile
+        f.parentFile.mkdirs()
+        f.writeText(appVersion)
+    }
+}
+sourceSets {
+    main { resources.srcDir(layout.buildDirectory.dir("generated/res")) }
+}
+tasks.named("processResources") { dependsOn(genVersion) }
+
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(compose.foundation)

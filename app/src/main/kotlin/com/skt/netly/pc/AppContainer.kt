@@ -23,6 +23,9 @@ import com.skt.netly.pc.ui.shell.Screen
 import java.io.File
 import kotlinx.coroutines.delay
 import com.skt.netly.pc.data.settings.SettingsRepository
+import com.skt.netly.pc.data.update.AppUpdate
+import com.skt.netly.pc.data.update.AppUpdateChecker
+import com.skt.netly.pc.data.update.UpdateCheck
 import com.skt.netly.pc.platform.AppPaths
 import com.skt.netly.pc.ui.home.HomeViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -114,6 +117,16 @@ class AppContainer {
         }
     }
 
+    /** A newer Netly release found on GitHub (null = none, or the person closed the banner). */
+    val appUpdate = MutableStateFlow<AppUpdate?>(null)
+
+    /** Asks GitHub for the latest release. [manual] checks always run; the automatic check only runs when allowed in Settings. */
+    suspend fun checkAppUpdate(): UpdateCheck {
+        val result = AppUpdateChecker.check(proxy = settings.state.value.proxy)
+        if (result is UpdateCheck.Available) appUpdate.value = result.update
+        return result
+    }
+
     /** The video whose download-choice dialog is open (null = closed). */
     val downloadDialog = MutableStateFlow<PlayItem?>(null)
 
@@ -164,6 +177,11 @@ class AppContainer {
             manager.jobs.value.filter { it.status == JobStatus.Completed }.forEach { library.addFromJob(it) }
             library.scan()
             library.fillThumbnails()
+        }
+        scope.launch {
+            // One quiet check a few seconds after start; failures are ignored.
+            delay(8_000)
+            if (settings.state.value.checkAppUpdates) checkAppUpdate()
         }
         scope.launch {
             settings.state.collect { manager.setMaxConcurrent(it.maxConcurrent) }

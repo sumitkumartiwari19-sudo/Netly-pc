@@ -23,6 +23,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.LaunchedEffect
+import com.skt.netly.pc.platform.Links
 import com.skt.netly.pc.ui.player.DownloadDialog
 import com.skt.netly.pc.ui.player.FullscreenPlayer
 import com.skt.netly.pc.ui.theme.NeuPerf
@@ -136,6 +137,20 @@ fun AppShell(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) {
             modifier = Modifier.width(sidebarWidth).fillMaxHeight(),
         )
         Column(Modifier.weight(1f).fillMaxHeight()) {
+            val update by container.appUpdate.collectAsState()
+            update?.let { u ->
+                NeuSurface(Modifier.fillMaxWidth().padding(bottom = 16.dp), radius = 18.dp) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        NeuText("Netly ${u.version} is available.", style = Neu.type.label, maxLines = 1, modifier = Modifier.weight(1f))
+                        NeuTextButton("Download", primary = true, minHeight = 36.dp, radius = 12.dp, onClick = { Links.open(u.pageUrl) })
+                        NeuTextButton("Later", minHeight = 36.dp, radius = 12.dp, onClick = { container.appUpdate.value = null })
+                    }
+                }
+            }
             clipboardLink?.let { link ->
                 NeuSurface(Modifier.fillMaxWidth().padding(bottom = 16.dp), radius = 18.dp) {
                     Row(

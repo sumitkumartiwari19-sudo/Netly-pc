@@ -33,6 +33,8 @@ import com.skt.netly.pc.AppInfo
 import com.skt.netly.pc.data.engine.ConnectionTester
 import com.skt.netly.pc.data.engine.EngineStatus
 import com.skt.netly.pc.data.settings.AppSettings
+import com.skt.netly.pc.data.update.UpdateCheck
+import com.skt.netly.pc.platform.Links
 import com.skt.netly.pc.platform.FileActions
 import com.skt.netly.pc.platform.StartupRegistry
 import com.skt.netly.pc.ui.components.NeuLevel
@@ -68,6 +70,8 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
     var testing by remember { mutableStateOf(false) }
     var updateResult by remember { mutableStateOf<String?>(null) }
     var updating by remember { mutableStateOf(false) }
+    var appChecking by remember { mutableStateOf(false) }
+    var appCheckResult by remember { mutableStateOf<String?>(null) }
     fun change(f: (AppSettings) -> AppSettings) = container.settings.update(f)
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -200,8 +204,81 @@ fun SettingsScreen(container: AppContainer, onThemeChange: (ThemeMode) -> Unit) 
                 }
             }
         }
+        Section("About Netly") {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                NeuText("${AppInfo.NAME} for PC", style = Neu.type.title, modifier = Modifier.weight(1f))
+                NeuText("Version ${AppInfo.VERSION}", style = Neu.type.mono, color = c.textMuted)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                NeuTextButton(if (appChecking) "Checking…" else "Check for Netly updates", enabled = !appChecking, onClick = {
+                    appChecking = true
+                    scope.launch {
+                        appCheckResult = when (val r = container.checkAppUpdate()) {
+                            is UpdateCheck.Available -> "Netly ${r.update.version} is available."
+                            UpdateCheck.UpToDate -> "You have the latest version."
+                            is UpdateCheck.Failed -> r.message
+                        }
+                        appChecking = false
+                    }
+                })
+                appCheckResult?.let { NeuText(it, style = Neu.type.caption, color = c.textMuted, maxLines = 2, modifier = Modifier.weight(1f)) }
+            }
+            SwitchSetting("Check for Netly updates when the app starts", s.checkAppUpdates) { v -> change { it.copy(checkAppUpdates = v) } }
+            NeuText(
+                "Update checks only read GitHub's public release information. Nothing is installed without you.",
+                style = Neu.type.caption,
+                color = c.textMuted,
+            )
+        }
+        Section("Developer") {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                NeuText(AppInfo.DEV_NAME, style = Neu.type.title)
+                NeuText(AppInfo.DEV_ROLE, style = Neu.type.caption, color = c.textMuted)
+            }
+            LinkRow {
+                NeuTextButton("Portfolio", onClick = { Links.open(AppInfo.DEV_PORTFOLIO) })
+                NeuTextButton("GitHub", onClick = { Links.open(AppInfo.DEV_GITHUB) })
+                NeuTextButton("Instagram", onClick = { Links.open(AppInfo.DEV_INSTAGRAM) })
+                NeuTextButton("Email", onClick = { Links.feedbackMail() })
+            }
+            NeuText(AppInfo.DEV_EMAIL, style = Neu.type.mono, color = c.textMuted, maxLines = 1)
+        }
+        Section("Help and feedback") {
+            NeuText(
+                "Found a bug or have an idea? Tell me. Please say what you did, what you expected and what happened.",
+                style = Neu.type.caption,
+                color = c.textMuted,
+            )
+            LinkRow {
+                NeuTextButton("Report a problem", primary = true, onClick = { Links.open(AppInfo.ISSUES_URL) })
+                NeuTextButton("Send feedback by email", onClick = { Links.feedbackMail() })
+                NeuTextButton("Star on GitHub", onClick = { Links.open(AppInfo.REPO_URL) })
+            }
+            LinkRow {
+                NeuTextButton("Privacy", onClick = { Links.open(AppInfo.PRIVACY_URL) })
+                NeuTextButton("Open-source licenses", onClick = { Links.open(AppInfo.LICENSES_URL) })
+                NeuTextButton("Security", onClick = { Links.open(AppInfo.SECURITY_URL) })
+            }
+            NeuText(
+                "Privacy: Netly has no account, no ads and no tracking. Your settings, downloads list and library stay on this PC. " +
+                    "The internet is used only to talk to YouTube (and GitHub for update checks).",
+                style = Neu.type.caption,
+                color = c.textMuted,
+            )
+            NeuText(
+                "Netly is not affiliated with YouTube or Google. Download only content you own or have permission to save.",
+                style = Neu.type.caption,
+                color = c.textMuted,
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LinkRow(content: @Composable () -> Unit) {
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
 }
 
 @Composable

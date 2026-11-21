@@ -93,6 +93,11 @@ Split in two parts: M3a (engine and queue, no new screen) and M3b (Downloads scr
 - [x] If YouTube refuses yt-dlp on every try, the download is saved straight with ffmpeg from YouTube's player API
 - [x] Download from the player opens a quality dialog (144p up to the highest, sizes, audio formats)
 
+## M12 (v1.0.0 release)
+- [x] In-app update check (GitHub releases, read-only), banner and Settings button
+- [x] About, Developer (portfolio, GitHub, Instagram, email) and Help and feedback sections
+- [x] LICENSE, THIRD_PARTY_NOTICES, PRIVACY, SECURITY, release notes; FFmpeg checksum check in CI
+
 ## After v1.0
 - P1 leftovers: embed subtitles/tags, playlist polish, per-item resume across restarts
 - Google sign-in WebView (E-04), favorites (L-04), FLAC/WAV
